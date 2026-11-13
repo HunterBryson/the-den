@@ -8,6 +8,28 @@ The Den is where Odie and I build things together. Odie puts what it's working o
 
 The part that makes it work is the AI's side. Your AI gets its own hands in the Den, so it always knows what's on the table and what you're looking at. It can put things out, change them in place while you watch, and show you two or three ways side by side before it builds anything. Instead of a wall of text in chat, it brings you the thing itself.
 
+## What you can do
+
+- **Click any card to see it full screen.** Back or Esc brings you back. Nothing closes by accident.
+- **Put up to four things side by side.** Click a card on the left to show it, or **+ Beside** to add it next to what's there.
+- **Ask for something new** with the buttons along the bottom: **Make pictures**, **Show me ways**, **Build a mock-up**, **Write it up**, **Bring a page**. Type or talk (Win+H) into the box that opens.
+- **Pick a way.** When your AI shows you two or three versions of something, click one to see it big and pick it with a word.
+- **Drop or paste anything** onto the page: a picture, a screenshot, a link. It lands on the table.
+- **Press Send when you're ready.** Your asks wait until then, so you can line up a few.
+- **Use the tiles along the top** to see only what you want: what's waiting on you, pictures, mock-ups, words, pages.
+- **With the glass:** box something on your screen and send it to the Den, or mark a card in the Den and your AI knows exactly which one you mean.
+
+## What your AI can do
+
+- **See the Den the way you see it,** and know what's on the table, what's out in front of you, and what you asked for.
+- **Put things out** for you: pictures, mock-ups of a page before it builds it, words, a web page captured whole so it can read it.
+- **Show you two or three ways side by side** before it builds anything, so you pick instead of explaining.
+- **Change a card in place while you watch.** Every change is kept, so either of you can step back.
+- **Make one thing out of two** you liked.
+- **Make pictures** through your ChatGPT (below).
+- **Tell you when something's your move.** It shows up under Waiting on you.
+- **Hear you the moment you press Send,** do what you asked, and mark each one done so you can see it.
+
 Here's the first time I really used it. I clicked Make pictures and said what I wanted:
 
 ![Asking for a picture in the Den](docs/1-ask-for-a-picture.webp)
