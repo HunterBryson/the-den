@@ -30,7 +30,7 @@ The part that makes it work is the AI's side. Your AI gets its own hands in the 
 - **Tell you when something's your move.** It shows up under Waiting on you.
 - **Hear you the moment you press Send,** do what you asked, and mark each one done so you can see it.
 
-Here's the first time I really used it. I clicked Make pictures and said what I wanted:
+I got really lazy one time and just wanted Odie to make a heckin' picture. So I clicked Make pictures and just said what I wanted:
 
 ![Asking for a picture in the Den](docs/1-ask-for-a-picture.webp)
 
