@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // My hands in the Den (Nov 8). Everything I do here lands on the person's screen live, at full size.
 //
+// LOOKING AFTER IT: start [--open] · stop · restart · open · doctor · link <glass folder> · line · hook · hello
+//
 // THE WORK AREA (Nov 12): what's out, in order. One fills it, two sit side by side, a third sits under them, four make a grid.
 //   node tools/den.js bench                                      what's out right now, and what waits on me
 //   node tools/den.js bench A B [C D]                            put exactly these out  ·  bench add N  ·  bench off N  ·  bench clear
@@ -53,12 +55,14 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 
 // Where the Den is: config.json's port, or DEN_URL.
-let PORT = 7950; try { PORT = JSON.parse(fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:')), '..', 'config.json'), 'utf8')).port || PORT; } catch {}
+// A broken config.json stops everything with a plain message: falling back to the default port reached the wrong program (cold test 1).
+let PORT = 7950, CONF_BROKEN = null; const CONF_FILE = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:')), '..', 'config.json');
+try { if (fs.existsSync(CONF_FILE)) PORT = JSON.parse(fs.readFileSync(CONF_FILE, 'utf8')).port || PORT; } catch (e) { CONF_BROKEN = e.message; }
 const BASE = process.env.DEN_URL || 'http://127.0.0.1:' + PORT;
 const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:'));
 const args = process.argv.slice(2);
 const cmd = args.shift();
-const ADMIN = ['start', 'stop', 'restart', 'doctor', 'link', 'open', 'hello', 'line'];
+const ADMIN = ['start', 'stop', 'restart', 'doctor', 'link', 'open', 'hello', 'line', 'hook'];
 const flag = (name, takes = true) => { const i = args.indexOf(name); if (i < 0) return null; const v = takes ? args[i + 1] : true; args.splice(i, takes ? 2 : 1); return v; };
 const readArg = v => (v === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(v, 'utf8'));
 
@@ -184,7 +188,11 @@ async function point(id, note) {
 }
 
 async function main() {
+  if (CONF_BROKEN && cmd !== 'doctor') { console.log(`config.json is broken (${CONF_BROKEN}). Fix it (write paths with forward slashes), then start the Den again.`); process.exitCode = 1; return; }
   if (ADMIN.includes(cmd)) return (await import('./admin.mjs')).run(cmd, args, { BASE, here });
+  // Only ever work on this folder's Den: another copy on the same port is not ours to change (cold test 1).
+  if (cmd) { const h = await fetch(BASE + '/api/health', { signal: AbortSignal.timeout(2500) }).then(r => r.json()).catch(() => null);
+    if (h?.den && path.resolve(h.folder).toLowerCase() !== path.resolve(here, '..').toLowerCase()) { console.log(`The Den on ${BASE} is another copy (${h.folder}), not this one. Stop that one, or give this one its own "port" in config.json.`); process.exitCode = 1; return; } }
   const a = args;
   switch (cmd) {
     case 'now': { const card = flag('--card'); const p = await api('/presence', { method: 'POST', body: { doing: a[0], card } }); console.log(`my line: ${p.doing}`); break; }
@@ -206,9 +214,10 @@ async function main() {
       await api('/bench', { method: 'POST', body: { items, by: 'odie' } }); console.log(await benchLine()); break; }
     case 'see': {
       const out = path.resolve(a[0] || path.join(process.env.TEMP || '.', 'den-see.png'));
+      fs.rmSync(out, { force: true }); // never report an old picture as this one (the public Den's cold test, Nov 13)
       const chrome = (await fetch(BASE + '/api/health').then(r => r.json()).catch(() => ({}))).chrome || 'chrome', prof = path.join(process.env.TEMP || '.', 'den-see-profile');
       await run(chrome, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--user-data-dir=${prof}`, '--window-size=1920,1080', '--virtual-time-budget=7000', `--screenshot=${out}`, `${BASE}/den/${flag('--page') || ''}?see=1`], { timeout: 45000 });
-      console.log(fs.existsSync(out) ? `the Den as he sees it (1920x1080): ${out}` : 'the picture failed'); break; }
+      console.log(fs.existsSync(out) ? `the Den as he sees it (1920x1080): ${out}` : 'the picture failed (is the Den running?)'); break; }
     case 'at': { const r = await api(`/at?x1=${a[0]}&y1=${a[1]}&x2=${a[2]}&y2=${a[3]}`); console.log(r.say || 'nothing of the Den is there (or the Den is not open)'); break; }
     case 'merge': {
       const [A, B, title, file, note] = a; const ext = path.extname(file).toLowerCase();
@@ -276,4 +285,4 @@ async function main() {
     default: console.log(fs.readFileSync(new URL(import.meta.url), 'utf8').split('\n').filter(l => l.startsWith('//')).map(l => l.slice(3)).join('\n'));
   }
 }
-main().catch(e => { console.log(/fetch failed|ECONNREFUSED|timeout/i.test(String(e.message)) ? 'The Den is not running. Start it: node tools/den.js start' : `Den: ${e.message}`); });
+main().catch(e => { process.exitCode = 1; console.log(/fetch failed|ECONNREFUSED|timeout/i.test(String(e.message)) ? 'The Den is not running. Start it: node tools/den.js start' : `Den: ${e.message}`); });
