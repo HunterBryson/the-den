@@ -74,7 +74,8 @@ export async function run(cmd, args, { BASE }) {
   }
   if (cmd === 'hello') { // for a start-of-chat hook: one quiet line, never an error
     const h = await health(BASE), me = `"${(realNode() || process.execPath).split(path.sep).join('/')}" "${path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/')}"`;
-    if (!h?.den || !same(h.folder, ROOT)) { console.log(`The Den isn't running. Start it when you need it: ${me} start`); return; }
+    if (h && !(h.den && same(h.folder, ROOT))) { console.log(`Something else holds the Den's port (${h.den ? 'another Den, from ' + h.folder : 'another program'}). Run ${me} doctor.`); return; }
+    if (!h) { console.log(`The Den isn't running. Start it when you need it: ${me} start`); return; }
     try {
       const a = await (await fetch(BASE + '/api/den/asks', { signal: AbortSignal.timeout(2500) })).json();
       const open = (Array.isArray(a) ? a : []).filter(x => !x.done);
@@ -94,11 +95,11 @@ export async function run(cmd, args, { BASE }) {
 /** Every chat knows the Den: a start-of-chat hook, and (with a glass linked) GLASS_DEN_URL. Merged into ~/.claude/settings.json, a copy kept. */
 function hook(port) {
   const file = path.join(os.homedir(), '.claude', 'settings.json');
-  let s = {};
+  let s = {}, backedUp = false;
   if (fs.existsSync(file)) {
     try { s = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { console.log(`${file} doesn't read as JSON (${e.message}), so I left it alone.`); process.exitCode = 1; return; }
     const back = file + '.before-den';
-    if (!fs.existsSync(back) && !JSON.stringify(s).includes('den.js')) fs.copyFileSync(file, back);
+    if (!fs.existsSync(back) && !JSON.stringify(s).includes('den.js')) { fs.copyFileSync(file, back); backedUp = true; }
   } else fs.mkdirSync(path.dirname(file), { recursive: true });
   const node = (realNode() || process.execPath).split(path.sep).join('/');
   const tool = path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/');
@@ -108,7 +109,7 @@ function hook(port) {
   s.hooks.SessionStart.push({ hooks: [{ type: 'command', command: `"${node}" "${tool}" hello`, timeout: 5 }] });
   if (conf()?.glass) { s.env ??= {}; s.env.GLASS_DEN_URL = `http://127.0.0.1:${port}`; }
   fs.writeFileSync(file, JSON.stringify(s, null, 2) + '\n');
-  console.log(`Every new chat now gets a line about the Den${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}. A copy of the old settings is at settings.json.before-den.`);
+  console.log(`Every new chat now gets a line about the Den${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at settings.json.before-den' : ''}.`);
 }
 
 function tail(n) { try { return fs.readFileSync(LOG, 'utf8').trim().split('\n').slice(-n).join('\n'); } catch { return '(no log yet)'; } }
@@ -120,7 +121,8 @@ async function doctor(BASE, port) {
   say(!!node && major >= 20, `Node ${process.versions.node} at ${process.execPath}`, node ? 'install Node 20 or newer (nodejs.org, the LTS)' : 'run den.js with the real node.exe, not a wrapper');
   if (major > 24) ok.push(`  (Node ${major} is newer than any we've tested; if something odd happens, say which Node it was)`);
   const c = conf();
-  say(!!c, 'config.json reads', 'it is broken: open it, fix the JSON (paths with forward slashes), or delete it and start again to get a fresh one');
+  say(!!c, 'config.json reads', 'it is broken: open it and fix the JSON (paths with forward slashes). Deleting it would reset the names and the port.');
+  if (!c) { console.log(ok.concat(bad).join('\n') + '\n\nFix config.json first; the other checks need it.'); process.exitCode = 1; return; }
   const h = await health(BASE);
   if (!h) say(false, `the Den answers on port ${port}`, 'node tools/den.js start');
   else if (!h.den || !same(h.folder, ROOT)) say(false, `port ${port} is this Den`, h.den ? `another Den (${h.folder}) is on it: stop that one, or set another "port" here` : `something else has port ${port}: set another "port" in config.json, then start`);
@@ -139,9 +141,12 @@ async function doctor(BASE, port) {
   if (!g) ok.push('· no glass linked (optional): node tools/den.js link <glass folder>');
   else {
     say(fs.existsSync(path.join(g, 'tools', 'glass.js')), `the glass is linked (${g})`, 'that folder moved: node tools/den.js link <where the glass is now>');
-    say(!!process.env.GLASS_DEN_URL, "the glass knows the Den (GLASS_DEN_URL in this chat's settings)", 'node tools/den.js hook (or hand your person the line from den.js line), then restart the glass. A chat started before that won\'t see it yet.');
+    let saved = null; try { saved = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude', 'settings.json'), 'utf8')).env?.GLASS_DEN_URL || null; } catch {}
+    if (process.env.GLASS_DEN_URL) ok.push('✓ the glass knows the Den');
+    else if (saved === `http://127.0.0.1:${port}`) ok.push('· the glass knows the Den from your settings; it takes effect in a new chat, after a glass restart');
+    else say(false, 'the glass knows the Den (GLASS_DEN_URL in your settings)', 'node tools/den.js hook (or hand your person the line from den.js line), then restart the glass');
   }
   console.log(ok.concat(bad).join('\n'));
-  if (bad.length) console.log(`\nFix the first ✗ first. The end of the Den's log:\n${tail(5)}`);
+  if (bad.length) { console.log(`\nFix the first ✗ first. The end of the Den's log:\n${tail(5)}`); process.exitCode = 1; }
   else console.log('\nAll good.');
 }

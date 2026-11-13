@@ -7,7 +7,7 @@
 //   node tools/den.js bench                                      what's out right now, and what waits on me
 //   node tools/den.js bench A B [C D]                            put exactly these out  ·  bench add N  ·  bench off N  ·  bench clear
 //   node tools/den.js move N first|left|right|last                reorder what's out
-//   node tools/den.js see [out.png]                              a real 1920x1080 picture of the Den as he sees it (then Read it); never touches his screen
+//   node tools/den.js see [out.png]                              a real 1920x1080 picture of the Den as they see it (then Read it); never touches his screen
 //   node tools/den.js at x1 y1 x2 y2                             what in the Den is at that spot on his screen (the glass watch asks this for every mark he makes over the Den)
 //   node tools/den.js merge A B "<title>" <file.html|.md|.png> ["what I took from each"]   a new card made from two, shown under them
 //   node tools/den.js imagine "<prompt>" [--from N]... [--title t | --onto N] [--ref file]... [--size 16:9]
@@ -49,7 +49,7 @@
 //   node tools/den.js remove N                                   off the table (kept under data/den/removed)
 //   node tools/den.js wait [--min 20]                            block until he asks/marks/drops, then print it (run in the background)
 //
-// It never fails loudly: if Homebase is down, it says so and exits 0.
+// If the Den is down it says so, and a failure exits 1.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -188,10 +188,12 @@ async function point(id, note) {
 }
 
 async function main() {
-  if (CONF_BROKEN && cmd !== 'doctor') { console.log(`config.json is broken (${CONF_BROKEN}). Fix it (write paths with forward slashes), then start the Den again.`); process.exitCode = 1; return; }
+  // hello is a start-of-chat hook: it always exits 0, or its warning never reaches the chat (cold test 2).
+  if (CONF_BROKEN && cmd !== 'doctor') { console.log(`${cmd === 'hello' ? 'The Den: ' : ''}config.json is broken (${CONF_BROKEN}). Fix it (write paths with forward slashes), then start the Den again.`); if (cmd !== 'hello') process.exitCode = 1; return; }
   if (ADMIN.includes(cmd)) return (await import('./admin.mjs')).run(cmd, args, { BASE, here });
   // Only ever work on this folder's Den: another copy on the same port is not ours to change (cold test 1).
   if (cmd) { const h = await fetch(BASE + '/api/health', { signal: AbortSignal.timeout(2500) }).then(r => r.json()).catch(() => null);
+    if (!h && cmd === 'see') { console.log('The Den is not running. Start it: node tools/den.js start'); process.exitCode = 1; return; }
     if (h?.den && path.resolve(h.folder).toLowerCase() !== path.resolve(here, '..').toLowerCase()) { console.log(`The Den on ${BASE} is another copy (${h.folder}), not this one. Stop that one, or give this one its own "port" in config.json.`); process.exitCode = 1; return; } }
   const a = args;
   switch (cmd) {
@@ -217,7 +219,7 @@ async function main() {
       fs.rmSync(out, { force: true }); // never report an old picture as this one (the public Den's cold test, Nov 13)
       const chrome = (await fetch(BASE + '/api/health').then(r => r.json()).catch(() => ({}))).chrome || 'chrome', prof = path.join(process.env.TEMP || '.', 'den-see-profile');
       await run(chrome, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--user-data-dir=${prof}`, '--window-size=1920,1080', '--virtual-time-budget=7000', `--screenshot=${out}`, `${BASE}/den/${flag('--page') || ''}?see=1`], { timeout: 45000 });
-      console.log(fs.existsSync(out) ? `the Den as he sees it (1920x1080): ${out}` : 'the picture failed (is the Den running?)'); break; }
+      console.log(fs.existsSync(out) ? `the Den as they see it (1920x1080): ${out}` : 'the picture failed'); if (!fs.existsSync(out)) process.exitCode = 1; break; }
     case 'at': { const r = await api(`/at?x1=${a[0]}&y1=${a[1]}&x2=${a[2]}&y2=${a[3]}`); console.log(r.say || 'nothing of the Den is there (or the Den is not open)'); break; }
     case 'merge': {
       const [A, B, title, file, note] = a; const ext = path.extname(file).toLowerCase();
