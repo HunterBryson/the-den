@@ -1,49 +1,49 @@
 #!/usr/bin/env node
-// My hands in the Den (Nov 8). Everything I do here lands on the person's screen live, at full size.
+// Your hands in the Den, the AI's side. Everything you do here lands on the person's screen live, at full size.
 //
 // LOOKING AFTER IT: start [--open] · stop · restart · open · doctor · link <glass folder> · line · hook · hello
 //
-// THE WORK AREA (Nov 12): what's out, in order. One fills it, two sit side by side, a third sits under them, four make a grid.
-//   node tools/den.js bench                                      what's out right now, and what waits on me
+// THE WORK AREA: what's out, in order. One fills it, two sit side by side, a third sits under them, four make a grid.
+//   node tools/den.js bench                                      what's out right now, and what waits on you
 //   node tools/den.js bench A B [C D]                            put exactly these out  ·  bench add N  ·  bench off N  ·  bench clear
 //   node tools/den.js move N first|left|right|last                reorder what's out
-//   node tools/den.js see [out.png]                              a real 1920x1080 picture of the Den as they see it (then Read it); never touches his screen
-//   node tools/den.js at x1 y1 x2 y2                             what in the Den is at that spot on his screen (the glass watch asks this for every mark he makes over the Den)
+//   node tools/den.js see [out.png]                              a real 1920x1080 picture of the Den as they see it (then Read it); never touches their screen
+//   node tools/den.js at x1 y1 x2 y2                             what in the Den is at that spot on their screen (the glass watch asks this for every mark they make over the Den)
 //   node tools/den.js merge A B "<title>" <file.html|.md|.png> ["what I took from each"]   a new card made from two, shown under them
 //   node tools/den.js imagine "<prompt>" [--from N]... [--title t | --onto N] [--ref file]... [--size 16:9]
 //                                                                make a picture right here: --from uses those cards as references (a mock-up goes in as its screenshot),
-//                                                                --onto N makes it the next version of picture N (he can step back), else a new card. He sees "the AI is working".
+//                                                                --onto N makes it the next version of picture N (they can step back), else a new card. They see "the AI is working".
 //   node tools/den.js change N <file.png> ["what changed"]       a changed picture: the next version of the same card (pictures step back and forward like mock-ups)
-//   node tools/den.js working "<what>" [--card N]  ·  working off <id>     show him a job I'm in the middle of
+//   node tools/den.js working "<what>" [--card N]  ·  working off <id>     show them a job you're in the middle of
 //   node tools/den.js yours N "<what I need from you>"  ·  yours N off     mark a card as waiting on them (counts in "Waiting on you")
-//   node tools/den.js asks                                       what he sent me with Send to the AI that I haven't finished
-//   node tools/den.js did <n> "<what I did>"                     close one of their asks; he sees it by the Ask the AI to row
+//   node tools/den.js asks                                       what they sent you with Send to the AI that you haven't finished
+//   node tools/den.js did <n> "<what I did>"                     close one of their asks; they see it by the Ask the AI to row
 //
-//   node tools/den.js now "<what I'm doing>" [--card N]           my one line at the top
-//   node tools/den.js hold N ["why"]                             show card N (what I'm holding); `hold off` lets go
+//   node tools/den.js now "<what I'm doing>" [--card N]           your one line at the top
+//   node tools/den.js hold N ["why"]                             show card N (what you are holding); `hold off` lets go
 //   node tools/den.js compare A B                                two cards side by side; `compare off`
 //   node tools/den.js look [N]                                   the table, or one card whole (marks in words, their asks, files to Read)
-//   node tools/den.js news [--peek]                              what he did since I last looked
+//   node tools/den.js news [--peek]                              what they did since you last looked
 //   node tools/den.js put mock "<title>" <file.html> [--w 1280] [--note "<why>"] [--home <path>] [--with N]
 //   node tools/den.js put words "<title>" <file.md|-> [--note ..] [--home <path>]
 //   node tools/den.js put picture "<title>" <file>  ·  put file <file>  ·  put chart "<title>" <file.json>
 //   node tools/den.js put page <url> [--w 1280] ["title"]        capture a web page onto the table (then its words are readable)
-//   node tools/den.js put voice <dumpId>                         a voice dump: his audio and its words
+//   node tools/den.js put voice <dumpId>                         a voice dump: their audio and its words
 //   node tools/den.js version N <file.html|file.md|-> ["what changed"]   the next version, in the same card, shown
-//   node tools/den.js work N                                     where card N's working copy is. I edit that file with my own tools (Edit, a script):
-//                                                                every save is a step, and the card changes in place on his screen, glowing where I touched it
+//   node tools/den.js work N                                     where card N's working copy is. you edit that file with your own tools (Edit, a script):
+//                                                                every save is a step, and the card changes in place on their screen, glowing where you touched it
 //   node tools/den.js edit N "old" "new" ["what changed"] [--all]    the same, by find-and-replace (--old-file / --new-file for long text)
-//   node tools/den.js undo N                                     back one step (he has ↶ ↷ on the card too)
+//   node tools/den.js undo N                                     back one step (they have ↶ ↷ on the card too)
 //   node tools/den.js ways N|new[:"title"] a.html b.html [c.html d.html] [--names "Compact|Roomy"] [--w 1280] [--note ..]
-//                                                                two to four live mock-ups side by side, before I build any. Their files are way-<round>-<a..d>.html
-//                                                                beside the working copy; saving one redraws it in place. He taps 'use this one', or I pick/merge.
+//                                                                two to four live mock-ups side by side, before you build any. Their files are way-<round>-<a..d>.html
+//                                                                beside the working copy; saving one redraws it in place. They tap 'use this one', or you pick or merge.
 //   node tools/den.js pick N a  ·  ways N off                    that way becomes the card's next version  ·  clear them
-//   node tools/den.js type N < words                             my words landing live as I write; `version` makes them real
-//   node tools/den.js say N "text" | --file <f>                   a note of mine on the whole card
-//   node tools/den.js point N ["note"]                           circle card N on his real screen with the glass
+//   node tools/den.js type N < words                             your words landing live as you write; `version` makes them real
+//   node tools/den.js say N "text" | --file <f>                   a note of yours on the whole card
+//   node tools/den.js point N ["note"]                           circle card N on their real screen with the glass
 //   node tools/den.js settle N ["why"] · retire N · reopen N · title N "<t>" · home N <path> · keep N [<path>]
 //   node tools/den.js remove N                                   off the table (kept under data/den/removed)
-//   node tools/den.js wait [--min 20]                            block until he asks/marks/drops, then print it (run in the background)
+//   node tools/den.js wait [--min 20]                            block until they ask/marks/drops, then print it (run in the background)
 //
 // If the Den is down it says so, and a failure exits 1.
 import fs from 'node:fs';
@@ -51,7 +51,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 
 // Where the Den is: config.json's port, or DEN_URL.
-// A broken config.json stops everything with a plain message: falling back to the default port reached the wrong program (cold test 1).
+// A broken config.json stops everything with a plain message: falling back to the default port reached the wrong program .
 let PORT = 7950, CONF_BROKEN = null; const CONF_FILE = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:')), '..', 'config.json');
 try { if (fs.existsSync(CONF_FILE)) PORT = JSON.parse(fs.readFileSync(CONF_FILE, 'utf8')).port || PORT; } catch (e) { CONF_BROKEN = e.message; }
 const BASE = process.env.DEN_URL || 'http://127.0.0.1:' + PORT;
@@ -146,7 +146,7 @@ async function look(id) {
   if (c.kind === 'mock') L.push(`versions: ${c.versions.map(x => `v${x.v}${x.v === c.v ? ' (showing)' : ''} by ${x.by}${x.note ? ` "${x.note}"` : ''}`).join(', ')}`, `width ${c.w}px · page: ${path.join(dir, `v${c.v}.html`)} · a screenshot: GET ${BASE}/api/den/cards/${c.id}/shot`, '');
   if (c.kind === 'text') { L.push(`versions: ${c.versions.map(x => `v${x.v}${x.v === c.v ? ' (showing)' : ''} by ${x.by}${x.note ? ` "${x.note}"` : ''}`).join(', ')}`, '', '## The words', c.body, ''); }
   if (c.kind === 'drop' || c.kind === 'picture') { L.push(`## The picture`, c.file ? `file: ${path.join(dir, c.file.path)} (Read it)` : '(no picture)', c.from ? `from: ${c.from.app}${c.from.title ? ` · "${c.from.title}"` : ''}${c.from.url ? ` · ${c.from.url}` : ''}` : '', ''); if (c.note) L.push('## His words', c.note, ''); if (c.words) L.push('## The words in it', c.words, ''); }
-  if (c.kind === 'page') L.push(`## The page`, c.url, c.captured ? `capture: ${path.join(dir, 'page.png')} (Read it) · ${c.w}×${c.h}` : 'not captured yet', c.words ? `\n## The words on it\n${c.words.slice(0, 6000)}` : '', '');
+  if (c.kind === 'page') L.push(`## The page`, c.url, c.captured ? `capture: ${path.join(dir, 'page.png')} (Read it) · ${c.w}×${c.h}` : (c.captureError ? `the capture failed: ${c.captureError} (try again: den.js capture ${c.id})` : 'not captured yet (it finishes a few seconds after put page)'), c.words ? `\n## The words on it\n${c.words.slice(0, 6000)}` : '', '');
   if (c.kind === 'voice') L.push('## The words he said', c.body || '(none yet)', `audio: ${BASE}/api/dumps/${c.dump}/audio · ${c.seconds || '?'} s`, '');
   if (c.kind === 'chart') L.push('## The chart', `${c.body.labels.length} points, ${c.body.labels[0]} to ${c.body.labels.at(-1)}; last ${c.body.values.at(-1)}`, '');
   if (c.file && c.kind === 'file') L.push(`## The file`, path.join(dir, c.file.path), '');
@@ -203,7 +203,7 @@ async function main() {
       else if (a[0] === 'off') items = items.filter(i => i !== Number(a[1]));
       else if (a[0] === 'clear') items = [];
       else if (a.length) items = a.map(Number);
-      if (a.length) await api('/bench', { method: 'POST', body: { items, by: 'odie' } });
+      if (a.length) { const b = await api('/bench', { method: 'POST', body: { items, by: 'odie' } }); const missing = items.filter(i => !(b.items || []).includes(i)); if (missing.length) console.log(`Not on the table, so left out: ${missing.map(i => '#' + i).join(', ')}`); }
       console.log(await benchLine()); break; }
     case 'move': {
       const d = await api(''); const items = d.bench.slice(), n = Number(a[0]), i = items.indexOf(n);
@@ -280,10 +280,18 @@ async function main() {
       // Asked in four-minute pieces: Node drops a request that hears nothing for five minutes, which used to end this watch early and call the Den dark.
       let r = { ask: null }; const until = Date.now() + min * 60000;
       // If the Den is down (a restart), wait for it to come back instead of failing at once, so a watch loop never floods (Forge, Nov 15).
+      // A restart is back within seconds; a Den still down after a minute was stopped, so the watch ends instead of blocking for nothing (cold test, Nov 15).
+      let downSince = 0;
       while (!r.ask && Date.now() < until) {
-        try { r = await api(`/wait?ms=${Math.min(240000, Math.max(1000, until - Date.now()))}`, { timeout: 260000 }); }
-        catch (e) { if (!/fetch failed|ECONNREFUSED/i.test(String(e.message))) throw e; await new Promise(z => setTimeout(z, 10000)); }
+        try { r = await api(`/wait?ms=${Math.min(240000, Math.max(1000, until - Date.now()))}`, { timeout: 260000 }); downSince = 0; }
+        catch (e) {
+          if (!/fetch failed|ECONNREFUSED/i.test(String(e.message))) throw e;
+          downSince ||= Date.now();
+          if (Date.now() - downSince > 60000) { console.log("The Den stopped, so this watch ended. When it is running again (node tools/den.js start), start the watch again."); break; }
+          await new Promise(z => setTimeout(z, 10000));
+        }
       }
+      if (downSince) break;
       if (!r.ask) { console.log(`nothing from them in the Den for ${min} min`); break; }
       console.log(r.ask.what === 'send' ? `IN THE DEN, THEY ${line(r.ask)}` : `THEY ${line(r.ask).toUpperCase()}\nLook before answering: node tools/den.js look ${r.ask.card}\nThen start this watch again: node tools/den.js wait --min ${min}`);
       break;

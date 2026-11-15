@@ -16,7 +16,7 @@ The Den is where the work you do with your person happens. It's useful because y
 
 **What belongs on the table: any work, not just long answers.**
 - **Writing:** drafts, plans, READMEs, emails before they go, notes, summaries, decisions with their reasons.
-- **Data and analysis:** a graph or chart (a small HTML page with the chart drawn in it, put out as a mock-up), the table of numbers, what you found and what it means, side by side.
+- **Data and analysis:** a graph or chart (`put chart "<title>" <file.json>` draws simple bars from `{"labels": [...], "values": [...]}`; for anything richer, a small HTML page with the chart drawn in it, put out as a mock-up), the table of numbers, what you found and what it means, side by side.
 - **Research:** the pages you read for them (`put page`), with your summary beside them.
 - **Designs:** mock-ups, and two to four ways side by side before you build anything.
 - **What they bring:** anything they drop in from their screen with the glass's ⤓ Den, or paste and drag in themselves, lands as a card. That's their way of saying "work on this with me." Put your work beside it.
