@@ -79,7 +79,7 @@ export async function run(cmd, args, { BASE }) {
     try {
       const a = await (await fetch(BASE + '/api/den/asks', { signal: AbortSignal.timeout(2500) })).json();
       const open = (Array.isArray(a) ? a : []).filter(x => !x.done);
-      console.log(open.length ? `The Den: ${open.length} ask${open.length > 1 ? 's' : ''} from your person waiting. See them: ${me} asks` : 'The Den is running. Nothing is waiting on you there.');
+      console.log(open.length ? `The Den: ${open.length} ask${open.length > 1 ? 's' : ''} from your person waiting. See them: ${me} asks. The moves are in the-den skill.` : 'The Den is running. Nothing is waiting on you there. Work you do with your person goes on the table: the-den skill has the moves.');
     } catch { console.log('The Den is running.'); }
     return;
   }
@@ -109,7 +109,19 @@ function hook(port) {
   s.hooks.SessionStart.push({ hooks: [{ type: 'command', command: `"${node}" "${tool}" hello`, timeout: 5 }] });
   if (conf()?.glass) { s.env ??= {}; s.env.GLASS_DEN_URL = `http://127.0.0.1:${port}`; }
   fs.writeFileSync(file, JSON.stringify(s, null, 2) + '\n');
-  console.log(`Every new chat now gets a line about the Den${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at settings.json.before-den' : ''}.`);
+  const skilled = installSkill(node, tool);
+  console.log(`${skilled}Every new chat now gets a line about the Den${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at settings.json.before-den' : ''}.`);
+}
+
+/** The Den skill, into ~/.claude/skills/the-den, so its moves reach every chat in any folder, not only chats opened here. */
+function installSkill(node, tool) {
+  try {
+    const tmpl = fs.readFileSync(path.join(ROOT, 'skill', 'SKILL.md'), 'utf8');
+    const dir = path.join(os.homedir(), '.claude', 'skills', 'the-den');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'SKILL.md'), tmpl.replaceAll('node "{{DEN}}"', `"${node}" "${tool}"`).replaceAll('{{DEN}}', tool));
+    return `The Den skill is in ${dir.split(path.sep).join('/')}, so every chat, in any folder, knows the moves. `;
+  } catch (e) { process.exitCode = 1; return `The Den skill didn't install (${e.message}). `; }
 }
 
 function tail(n) { try { return fs.readFileSync(LOG, 'utf8').trim().split('\n').slice(-n).join('\n'); } catch { return '(no log yet)'; } }
