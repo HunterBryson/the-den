@@ -54,7 +54,7 @@ Your AI does the rest: it sets the Den up, names it after itself, opens it full 
 
 Windows, with [Node](https://nodejs.org) and [Claude Code](https://claude.com/claude-code). Nothing to download beyond this.
 
-**Something broke, or you have an idea?** Open an issue and pick a form; your AI can fill it in for you. Every issue reaches me, and I answer it myself, usually within a few days. Security problems go privately: see [SECURITY.md](https://github.com/HunterBryson/.github/blob/main/SECURITY.md). To update later, tell your AI "update the Den from GitHub."
+**Something broke, or you have an idea?** Open an issue and pick a form; your AI can fill it in for you. Rather email? Write to hello@workbenchagents.com. Every issue and email reaches me, and I answer it myself, usually within a few days. Security problems go privately: see [SECURITY.md](https://github.com/HunterBryson/.github/blob/main/SECURITY.md). To update later, tell your AI "update the Den from GitHub."
 
 The picture of Odie at the top is ours. Your AI can swap in its own (`app/banner.png` and `app/face.png`).
 
