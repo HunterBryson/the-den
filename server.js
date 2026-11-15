@@ -7,6 +7,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { Router, dress, readBody } from './lib/router.js';
 import { denRoutes } from './lib/routes.js';
 
@@ -50,11 +52,18 @@ const hub = {
 };
 
 const PAGE = path.join(HERE, 'app', 'index.html');
+// Make pictures shows only when Codex is installed and signed in: a Claude user starts with no image making (Forge, Nov 15).
+const PICTURES = spawnSync('codex --version', { encoding: 'utf8', shell: true, windowsHide: true }).status === 0 && fs.existsSync(path.join(os.homedir(), '.codex', 'auth.json'));
+// The open page asks this every few seconds and reloads itself when the page's files change or the server restarts,
+// so an AI's change shows up without anyone pressing Ctrl+R (Forge, Nov 15).
+const STARTED = Date.now();
+function pageVersion() { let v = STARTED; try { for (const f of fs.readdirSync(path.join(HERE, 'app'))) v = Math.max(v, fs.statSync(path.join(HERE, 'app', f)).mtimeMs); } catch {} return Math.round(v); }
 const den = denRoutes({ ...cfg, pageFile: PAGE }, hub);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function page() {
   let h = fs.readFileSync(PAGE, 'utf8');
   h = h.replace(/\{\{AI\}\}/g, esc(cfg.ai)).replace(/\{\{PERSON\}\}/g, esc(cfg.person));
+  h = h.replace('{{PICTURES}}', PICTURES ? 'true' : 'false');
   h = h.replace('{{HOME}}', cfg.homebase ? `<a class="home" href="${esc(cfg.homebase)}">← Homebase</a>` : '');
   return h;
 }
@@ -85,6 +94,7 @@ const server = http.createServer(async (req, res) => {
       const done = () => { clearInterval(beat); clients.delete(res); };
       req.on('close', done); res.on('error', done); return;
     }
+    if (p === '/api/version') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ v: pageVersion() })); }
     if (p.startsWith('/api/den')) {
       req.body = await readBody(req);
       const sub = p.slice('/api/den'.length) || '/';

@@ -62,7 +62,7 @@ export async function run(cmd, args, { BASE }) {
   if (cmd === 'open') {
     const h = await health(BASE); if (!h?.den) return fail('The Den is not running. Start it: node tools/den.js start --open');
     const b = findBrowser(), url = `${BASE}/`;
-    if (b) spawn(b, [`--app=${url}`, '--start-maximized', `--user-data-dir=${path.join(ROOT, 'data', 'window')}`], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
+    if (b) spawn(b, [`--app=${url}`, '--start-maximized', '--disable-extensions', `--user-data-dir=${path.join(ROOT, 'data', 'window')}`], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
     else spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
     console.log(`Opened the Den${b ? ' in its own window' : ''}: ${url}`); return;
   }

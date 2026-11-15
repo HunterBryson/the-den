@@ -12,7 +12,7 @@ The part that makes it work is the AI's side. Your AI gets its own hands in the 
 
 - **Click any card to see it full screen.** Back or Esc brings you back. Nothing closes by accident.
 - **Put up to four things side by side.** Click a card on the left to show it, or **+ Beside** to add it next to what's there.
-- **Ask for something new** with the buttons along the bottom: **Make pictures**, **Show me ways**, **Build a mock-up**, **Write it up**, **Bring a page**. Type or talk (Win+H) into the box that opens.
+- **Ask for something new** with the buttons along the bottom: **Show me ways**, **Build a mock-up**, **Write it up**, **Bring a page**. Type or talk (Win+H) into the box that opens. **Make pictures** joins them when your AI can make pictures (the Pictures part below).
 - **Pick a way.** When your AI shows you two or three versions of something, click one to see it big and pick it with a word.
 - **Drop or paste anything** onto the page: a picture, a screenshot, a link. It lands on the table.
 - **Press Send when you're ready.** Your asks wait until then, so you can line up a few.

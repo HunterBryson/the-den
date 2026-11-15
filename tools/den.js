@@ -39,10 +39,6 @@
 //                                                                beside the working copy; saving one redraws it in place. He taps 'use this one', or I pick/merge.
 //   node tools/den.js pick N a  ·  ways N off                    that way becomes the card's next version  ·  clear them
 //   node tools/den.js type N < words                             my words landing live as I write; `version` makes them real
-//   node tools/den.js box|circle|underline N "phrase" ["note"] [--color green|red|yellow]   my mark on the words (found in the card)
-//   node tools/den.js box N --at x,y,w,h ["note"]                 my mark by position (design px for a mock/page, 0..1 otherwise)
-//   node tools/den.js answer N <mark> "text" | --file <f>        my answer under his mark
-//   node tools/den.js done N <mark>                              his mark is handled (after a version answered it)
 //   node tools/den.js say N "text" | --file <f>                   a note of mine on the whole card
 //   node tools/den.js point N ["note"]                           circle card N on his real screen with the glass
 //   node tools/den.js settle N ["why"] · retire N · reopen N · title N "<t>" · home N <path> · keep N [<path>]
@@ -257,13 +253,17 @@ async function main() {
     case 'ways': { const names = (flag('--names') || '').split('|'), w = flag('--w'), note = flag('--note'); if (a[1] === 'off') { await api(`/cards/${a[0]}/ways`, { method: 'DELETE' }); console.log(`#${a[0]}: ways cleared`); break; } const ways = a.slice(1).map((f, i) => ({ name: (names[i] || '').trim() || path.basename(f).replace(/.html?$/, ''), html: readArg(f) })); let c; if (/^new/.test(a[0])) { c = await api('/cards', { method: 'POST', body: { kind: 'mock', title: a[0].slice(4), ways, w: w ? Number(w) : undefined, note, by: 'odie' } }); await api('/hold', { method: 'POST', body: { id: c.id, by: 'odie' } }).catch(() => {}); } else c = await api(`/cards/${a[0]}/ways`, { method: 'POST', body: { ways, note, by: 'odie' } }); console.log(`#${c.id}: ${c.ways.list.length} ways side by side (${c.ways.list.map(x => x.k.toUpperCase() + (x.name ? ' ' + x.name : '')).join(' · ')})`); break; }
     case 'pick': { const c = await api(`/cards/${a[0]}/pick`, { method: 'POST', body: { k: a[1], by: 'odie' } }); console.log(`#${c.id}: way ${String(a[1]).toUpperCase()} is now the working copy (v${c.v})`); break; }
     case 'type': { const id = Number(a[0]); let text = ''; process.stdin.setEncoding('utf8'); for await (const chunk of process.stdin) { text += chunk; await api(`/cards/${id}/draft`, { method: 'POST', body: { text } }).catch(() => {}); } await api(`/cards/${id}/draft`, { method: 'POST', body: { text, done: false } }); console.log(`${text.length} characters showing as my draft on #${id} (den.js version ${id} - to make them real)`); break; }
-    case 'box': case 'circle': case 'underline': {
+    // Marks on a card are made with the glass, on their real screen: den.js point N, or the glass's own mark/box.
+    // The page doesn't draw marks of its own (Forge found these saved but never shown, Nov 15).
+    case 'box': case 'circle': case 'underline': case 'answer': case 'done':
+      console.log(`The Den doesn't draw marks on cards. Mark it on their screen with the glass instead: node tools/den.js point ${a[0] || 'N'} "note" circles the card, and the glass's own mark "<words>" "note" boxes words on it. A note on the card itself: node tools/den.js say ${a[0] || 'N'} "text".`); process.exitCode = 1; break;
+    case 'box-old': case 'circle-old': case 'underline-old': {
       const id = Number(a[0]); const at = flag('--at'), color = flag('--color'); let phrase = null, note = null, rect = null;
       if (at) { const [x, y, w, h] = at.split(',').map(Number); rect = { x, y, w, h }; note = a[1]; } else { phrase = a[1]; note = a[2]; }
       const m = await api(`/cards/${id}/marks`, { method: 'POST', body: { kind: cmd, rect, phrase, note, color, by: 'odie' } });
       console.log(`mark ${m.n} on #${id}: ${cmd}${phrase ? ` on "${phrase}"` : ''}${m.rect ? ` at ${Math.round(m.rect.x)},${Math.round(m.rect.y)}` : ' (the page finds the words when it draws)'}`); break; }
-    case 'answer': { const id = Number(a[0]), n = Number(a[1]); const f = flag('--file'); const text = f ? readArg(f) : a[2]; await api(`/cards/${id}/marks/${n}`, { method: 'PATCH', body: { reply: text, by: 'odie' } }); await presence(`answered your mark ${n}`, id); console.log(`answered mark ${n} on #${id}`); break; }
-    case 'done': { await api(`/cards/${a[0]}/marks/${a[1]}`, { method: 'PATCH', body: { done: true, by: 'odie' } }); console.log(`mark ${a[1]} on #${a[0]} is handled`); break; }
+    case 'answer-old': { const id = Number(a[0]), n = Number(a[1]); const f = flag('--file'); const text = f ? readArg(f) : a[2]; await api(`/cards/${id}/marks/${n}`, { method: 'PATCH', body: { reply: text, by: 'odie' } }); await presence(`answered your mark ${n}`, id); console.log(`answered mark ${n} on #${id}`); break; }
+    case 'done-old': { await api(`/cards/${a[0]}/marks/${a[1]}`, { method: 'PATCH', body: { done: true, by: 'odie' } }); console.log(`mark ${a[1]} on #${a[0]} is handled`); break; }
     case 'say': { const id = Number(a[0]); const f = flag('--file'); await api(`/cards/${id}/say`, { method: 'POST', body: { text: f ? readArg(f) : a[1], by: 'odie' } }); console.log(`said on #${id}`); break; }
     case 'point': await point(Number(a[0]), a[1]); break;
     case 'settle': await api(`/cards/${a[0]}`, { method: 'PATCH', body: { state: 'settled', why: a[1], by: 'odie' } }); console.log(`#${a[0]} settled`); break;
@@ -279,7 +279,11 @@ async function main() {
       const min = Number(flag('--min') || 20);
       // Asked in four-minute pieces: Node drops a request that hears nothing for five minutes, which used to end this watch early and call the Den dark.
       let r = { ask: null }; const until = Date.now() + min * 60000;
-      while (!r.ask && Date.now() < until) r = await api(`/wait?ms=${Math.min(240000, Math.max(1000, until - Date.now()))}`, { timeout: 260000 });
+      // If the Den is down (a restart), wait for it to come back instead of failing at once, so a watch loop never floods (Forge, Nov 15).
+      while (!r.ask && Date.now() < until) {
+        try { r = await api(`/wait?ms=${Math.min(240000, Math.max(1000, until - Date.now()))}`, { timeout: 260000 }); }
+        catch (e) { if (!/fetch failed|ECONNREFUSED/i.test(String(e.message))) throw e; await new Promise(z => setTimeout(z, 10000)); }
+      }
       if (!r.ask) { console.log(`nothing from them in the Den for ${min} min`); break; }
       console.log(r.ask.what === 'send' ? `IN THE DEN, THEY ${line(r.ask)}` : `THEY ${line(r.ask).toUpperCase()}\nLook before answering: node tools/den.js look ${r.ask.card}\nThen start this watch again: node tools/den.js wait --min ${min}`);
       break;

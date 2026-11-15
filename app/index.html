@@ -163,7 +163,8 @@ const FACE = 'face.png';
 const I = { you: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>', picture: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>', mock: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>', text: '<path d="M5 6h14M5 12h14M5 18h9"/>', page: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>', away: '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9M10 13h4"/>', change: '<path d="M4 20l4-1L19 8l-3-3L5 16z"/>', side: '<rect x="3" y="5" width="8" height="14" rx="1"/><rect x="13" y="5" width="8" height="14" rx="1"/>', merge: '<path d="M6 4v5c0 3 6 3 6 7v4M18 4v5c0 3-6 3-6 7"/>', grip: '<circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/>', undo: '<path d="M9 7L4 12l5 5M4 12h11a5 5 0 010 10h-2"/>', redo: '<path d="M15 7l5 5-5 5M20 12H9a5 5 0 000 10h2"/>', full: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', work: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>' };
 const svg = k => `<svg class="i" viewBox="0 0 24 24">${I[k]}</svg>`;
 const GROUP = { picture: 'picture', drop: 'picture', mock: 'mock', text: 'text', voice: 'text', page: 'page', file: 'page', chart: 'page' };
-const ASKS = [['pictures', 'picture', 'Make pictures'], ['ways', 'side', 'Show me ways'], ['mock', 'mock', 'Build a mock-up'], ['words', 'text', 'Write it up'], ['page', 'page', 'Bring a page']];
+const PICTURES = {{PICTURES}};
+const ASKS = [...(PICTURES ? [['pictures', 'picture', 'Make pictures']] : []), ['ways', 'side', 'Show me ways'], ['mock', 'mock', 'Build a mock-up'], ['words', 'text', 'Write it up'], ['page', 'page', 'Bring a page']];
 const ASKNAME = { pictures: 'Make pictures', ways: 'Show me ways', mock: 'Build a mock-up', words: 'Write it up', change: 'Change this', merge: 'Merge these two', page: 'Look at this page', say: 'Note' };
 
 const SEE = /[?&]see=1/.test(location.search);
@@ -227,7 +228,7 @@ function renderSide() {
   if (!list.length) side.append(el('div', 'none', filter === 'waiting' ? 'Nothing is waiting on you.' : 'Nothing here yet.'));
   for (const c of list) {
     const d = el('div', 'card' + (S.bench.includes(c.id) ? ' out' : '')); d.dataset.id = c.id; d.draggable = true;
-    const th = el('div', 'th'); if (c.thumb) th.style.backgroundImage = `url("${c.thumb}")`; else th.textContent = (c.excerpt || c.kind).slice(0, 150); d.append(th);
+    const th = el('div', 'th'); if (c.thumb) th.style.backgroundImage = `url("${c.thumb}")`; else th.textContent = (c.excerpt || c.kind).replace(/[#*_`>|]+/g, ' ').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim().slice(0, 150); d.append(th);
     d.append(el('div', 'nm', c.title));
     const tag = el('div', 'tag'); if (c.waiting) tag.append(el('span', '', c.waiting)); else if (c.by === 'hunter' && !c.touched) tag.append(el('span', 'new', 'new from you')); d.append(tag);
     const act = el('div', 'do');
@@ -512,6 +513,9 @@ async function refresh() {
   return loading;
 }
 function live() {
+  // Reload when the Den's own files change or it restarts, unless they're typing (Forge, Nov 15).
+  let pageV = null;
+  setInterval(async () => { try { const { v } = await (await fetch('/api/version', { cache: 'no-store' })).json(); if (pageV && v !== pageV && !document.querySelector('textarea:focus,input:focus') && !$('#askbox').classList.contains('open')) location.reload(); pageV = v; } catch {} }, 5000);
   const es = new EventSource('/api/events');
   es.addEventListener('den', e => {
     const ev = JSON.parse(e.data);
