@@ -141,7 +141,7 @@ async function doctor(BASE, port) {
   else say(true, `the Den is running at ${BASE}/ (from this folder)`);
   const table = path.resolve(ROOT, c?.table || '.', 'table');
   let canWrite = false; try { fs.mkdirSync(table, { recursive: true }); const t = path.join(table, '.write-test'); fs.writeFileSync(t, 'x'); fs.rmSync(t); canWrite = true; } catch {}
-  say(canWrite, `the table folder can be written (${table})`, 'move the Den out of a protected folder (Program Files, OneDrive sync conflicts), then start again');
+  say(canWrite, `the table folder can be written (${table})`, 'move the Den out of a protected folder (like Program Files), then start again');
   const b = findBrowser();
   say(!!b, `Chrome or Edge for page captures and mock-up pictures${b ? ` (${b})` : ''}`, 'install Chrome, or set "chrome" in config.json to a Chrome/Edge path');
   say(fs.existsSync(path.join(ROOT, 'tools', 'ocr.ps1')), 'Windows OCR helper (reads the words in pictures)', 'the file tools/ocr.ps1 is missing: git checkout tools/ocr.ps1');
