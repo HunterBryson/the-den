@@ -12,6 +12,8 @@
 //   node tools/den.js away N [N...]                              put several cards away at once (only on his word)
 //
 // LOOKING AFTER IT: start [--open] · stop · restart · open · doctor · link <glass folder> · line · hook · hello
+//   pickup                    what they put on the table since you last heard (a hook runs it on each message they write)
+//   bring <other Den folder>  copy another Den's cards into this one; the other is never changed
 //
 // THE WORK AREA (Nov 12): what's out, in order. One fills it, two sit side by side, a third sits under them, four make a grid.
 //   node tools/den.js bench                                      what's out right now, and what waits on me
@@ -69,7 +71,7 @@ const BASE = process.env.DEN_URL || 'http://127.0.0.1:' + PORT;
 const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:'));
 const args = process.argv.slice(2);
 const cmd = args.shift();
-const ADMIN = ['start', 'stop', 'restart', 'doctor', 'link', 'open', 'hello', 'line', 'hook'];
+const ADMIN = ['start', 'stop', 'restart', 'doctor', 'link', 'open', 'hello', 'line', 'hook', 'pickup', 'bring'];
 const flag = (name, takes = true) => { const i = args.indexOf(name); if (i < 0) return null; const v = takes ? args[i + 1] : true; args.splice(i, takes ? 2 : 1); return v; };
 const readArg = v => (v === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(v, 'utf8'));
 

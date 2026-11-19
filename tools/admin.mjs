@@ -77,17 +77,57 @@ export async function run(cmd, args, { BASE }) {
     if (h && !(h.den && same(h.folder, ROOT))) { console.log(`Something else holds the Den's port (${h.den ? 'another Den, from ' + h.folder : 'another program'}). Run ${me} doctor.`); return; }
     if (!h) { console.log(`The Den isn't running. Start it when you need it: ${me} start`); return; }
     try {
-      const a = await (await fetch(BASE + '/api/den/asks', { signal: AbortSignal.timeout(2500) })).json();
-      const open = (Array.isArray(a) ? a : []).filter(x => !x.done);
-      console.log(open.length ? `The Den: ${open.length} ask${open.length > 1 ? 's' : ''} from your person waiting. See them: ${me} asks. The moves are in the-den skill.` : 'The Den is running. Nothing is waiting on you there. Work you do with your person goes on the table: the-den skill has the moves.');
+      const d = await (await fetch(BASE + '/api/den/', { signal: AbortSignal.timeout(2500) })).json();
+      const n = (d.outbox?.did || []).length;
+      console.log(n ? `The Den: your person put ${n} thing${n > 1 ? 's' : ''} on the table since you last heard. Pick ${n > 1 ? 'them' : 'it'} up before you answer: ${me} pickup. The moves are in the-den skill.` : 'The Den is running. Nothing is waiting on you there. Work you do with your person goes on the table: the-den skill has the moves.');
     } catch { console.log('The Den is running.'); }
+    return;
+  }
+  // Their message is the send. What they put on the table since you last heard (notes on cards, files, drops from the glass)
+  // comes with their next chat message or glass send: a hook runs this on every message, and you can run it yourself.
+  // --hook: quiet when nothing waits, fast, and never an error (a hook that fails breaks their chat).
+  if (cmd === 'pickup') {
+    const quiet = args.includes('--hook'), me = `"${(realNode() || process.execPath).split(path.sep).join('/')}" "${path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/')}"`;
+    try {
+      const h = await fetch(BASE + '/api/health', { signal: AbortSignal.timeout(quiet ? 1200 : 2500) }).then(r => r.json()).catch(() => null);
+      if (!h?.den || !same(h.folder, ROOT)) { if (!quiet) console.log(h ? 'What answers on that port is not this Den.' : `The Den isn't running. Start it: ${me} start`); return; }
+      const d = await (await fetch(BASE + '/api/den/', { signal: AbortSignal.timeout(quiet ? 1500 : 4000) })).json();
+      const did = d.outbox?.did || [];
+      if (!did.length) { if (!quiet) console.log('Nothing new on the table from your person since you last heard.'); return; }
+      const name = x => `"${x.title || 'card ' + x.card}" (#${x.card})`;
+      const L = did.map(x => x.what === 'say' ? `- left a note on ${name(x)}: "${String(x.text || '').replace(/\s+/g, ' ').slice(0, 400)}"` : x.what === 'drop' ? `- dropped ${name(x)} onto the table from the glass` : `- added ${name(x)} to the table`);
+      await fetch(BASE + '/api/den/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(4000) });
+      console.log(`ON THE DEN, since you last heard, your person:\n${L.join('\n')}\nThis came with their message. Look at each card before you answer (${me} look N). A note is context unless it asks something.`);
+    } catch (e) { if (!quiet) { console.log(`The Den didn't answer (${e.message}).`); process.exitCode = 1; } }
+    return;
+  }
+  // Bring the cards from another copy of the Den (an older one, say) into this one. It copies; the other copy is never changed.
+  if (cmd === 'bring') {
+    const from = args.find(a => !a.startsWith('--')) && path.resolve(args.find(a => !a.startsWith('--')));
+    if (!from || !fs.existsSync(from)) return fail('den.js bring <the other Den folder> [--again]   (copies its cards into this Den; the other one is left exactly as it is)');
+    if (same(from, ROOT)) return fail('That is this Den.');
+    let oc = {}; try { oc = JSON.parse(fs.readFileSync(path.join(from, 'config.json'), 'utf8')); } catch {}
+    const src = path.resolve(from, oc.table || '.', 'table'), dst = path.resolve(ROOT, conf()?.table || '.', 'table');
+    if (!fs.existsSync(src)) return fail(`No cards found at ${src}.`);
+    if (same(src, dst)) return fail(`Both Dens use the same table folder (${src}). Give this one its own: set "table" in config.json to "." and run this again.`);
+    const has = fs.existsSync(dst) ? fs.readdirSync(dst).filter(n => /^\d+$/.test(n)) : [];
+    if (has.length && !args.includes('--again')) return fail(`This Den already has ${has.length} card${has.length > 1 ? 's' : ''}. To replace them with a fresh copy from ${from}, run it with --again (this Den's cards go to table-before-bring first; nothing is deleted).`);
+    const h = await health(BASE); if (h?.den && same(h.folder, ROOT)) { await fetch(BASE + '/api/quit', { method: 'POST' }).catch(() => {}); await sleep(700); }
+    if (has.length) { const keep = path.join(path.dirname(dst), 'table-before-bring-' + Date.now()); fs.renameSync(dst, keep); console.log(`This Den's own cards are kept at ${keep}.`); }
+    fs.cpSync(src, dst, { recursive: true });
+    // The table's small state (what's out, what was done, where the last send left off) comes along, so it opens the way they left it.
+    const sd = path.join(from, 'data'), dd = path.join(ROOT, 'data'); fs.mkdirSync(dd, { recursive: true });
+    for (const f of ['bench.json', 'events.jsonl', 'hand.json', 'removed']) { const a = path.join(sd, f); if (fs.existsSync(a)) fs.cpSync(a, path.join(dd, f), { recursive: true }); }
+    const n = fs.readdirSync(dst).filter(x => /^\d+$/.test(x)).length;
+    console.log(`Copied ${n} card${n === 1 ? '' : 's'} from ${from} into this Den. The other Den is exactly as it was.${h?.den ? ' Starting this one again.' : ''}`);
+    if (h?.den && same(h.folder, ROOT)) return run('start', [], { BASE, here });
     return;
   }
   if (cmd === 'doctor') return doctor(BASE, port);
   if (cmd === 'hook') return hook(port);
   if (cmd === 'line') {
     const node = (realNode() || process.execPath);
-    console.log(`If you can't change your own settings, give your person this one line. They right-click Start, choose Terminal, paste it, and press Enter:\n\n& "${node}" "${path.join(ROOT, 'tools', 'den.js')}" hook\n\nIt adds a start-of-chat line so every new chat knows about the Den${conf()?.glass ? ", and turns on the glass's ⤓ Den button" : ''}. It keeps a copy of their settings first.`);
+    console.log(`If you can't change your own settings, give your person this one line. They right-click Start, choose Terminal, paste it, and press Enter:\n\n& "${node}" "${path.join(ROOT, 'tools', 'den.js')}" hook\n\nIt adds a start-of-chat line so every new chat knows about the Den, and brings what they put on the table in with each message${conf()?.glass ? ", and turns on the glass's ⤓ Den button" : ''}. It keeps a copy of their settings first.`);
     return;
   }
 }
@@ -107,10 +147,14 @@ function hook(port) {
   // Setup heals a move: drop any older Den hook, then add this one.
   s.hooks.SessionStart = s.hooks.SessionStart.map(g => ({ ...g, hooks: (g.hooks || []).filter(x => !/den\.js"? hello/.test(x.command || '')) })).filter(g => g.hooks.length);
   s.hooks.SessionStart.push({ hooks: [{ type: 'command', command: `"${node}" "${tool}" hello`, timeout: 5 }] });
+  // Their message is the send: what they put on the table since you last heard rides in with each message they write.
+  s.hooks.UserPromptSubmit ??= [];
+  s.hooks.UserPromptSubmit = s.hooks.UserPromptSubmit.map(g => ({ ...g, hooks: (g.hooks || []).filter(x => !/den.js"? pickup/.test(x.command || '')) })).filter(g => g.hooks.length);
+  s.hooks.UserPromptSubmit.push({ hooks: [{ type: 'command', command: `"${node}" "${tool}" pickup --hook`, timeout: 5 }] });
   if (conf()?.glass) { s.env ??= {}; s.env.GLASS_DEN_URL = `http://127.0.0.1:${port}`; }
   fs.writeFileSync(file, JSON.stringify(s, null, 2) + '\n');
   const skilled = installSkill(node, tool);
-  console.log(`${skilled}Every new chat now gets a line about the Den${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at settings.json.before-den' : ''}.`);
+  console.log(`${skilled}Every new chat now gets a line about the Den, what they put on the table comes in with each message they write${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at settings.json.before-den' : ''}.`);
 }
 
 /** The Den skill, into ~/.claude/skills/the-den, so its moves reach every chat in any folder, not only chats opened here. */
