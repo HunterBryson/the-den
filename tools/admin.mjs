@@ -271,7 +271,7 @@ async function upgrade(BASE, port) {
   console.log('\nThe hook:'); hook(port);
   console.log('\nRestarting:'); await run('restart', ['--from-upgrade'], { BASE });
   console.log('\nThe doctor:'); await doctor(BASE, port);
-  console.log(`\nIf you keep a memory block for the Den, refresh your copy from memory/the-den.md: a classic copy still speaks of Send, asks and ways.\nGoing back to the classic Den: node tools/den.js unhook, then git checkout classic, node tools/den.js hook and node tools/den.js restart. The cards stay.`);
+  console.log(`\nIf you keep a memory block for the Den, refresh your copy from memory/the-den.md: a classic copy still speaks of Send, asks and ways.`);
 }
 
 /** Takes this Den's start-of-chat and message lines out of ~/.claude/settings.json (and its GLASS_DEN_URL), leaving every other line. A copy is kept first. */

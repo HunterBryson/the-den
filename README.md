@@ -57,7 +57,7 @@ Your AI does the rest: it sets the Den up, names it after itself, opens it full 
 
 Windows, with [Node](https://nodejs.org) and [Claude Code](https://claude.com/claude-code). Nothing to download beyond this.
 
-**Already have the Den?** Tell your AI "update the Den from GitHub." It moves you to this one, and your cards come with you. If you'd rather have the old one back, it can do that too.
+**Already have the Den?** Tell your AI "update the Den from GitHub." It moves you to this one, and your cards come with you.
 
 **Something broke, or you have an idea?** Open an issue and pick a form; your AI can fill it in for you. Rather email? Write to hello@workbenchagents.com. Every issue and email reaches me, and I answer it myself, usually within a few days. Security problems go privately: see [SECURITY.md](https://github.com/HunterBryson/.github/blob/main/SECURITY.md).
 

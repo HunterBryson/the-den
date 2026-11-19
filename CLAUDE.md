@@ -103,7 +103,6 @@ The Den updates in place: the same folder, the same port, the same cards. This i
 
 If you pulled and restarted without `upgrade` (the classic CLAUDE.md said only that), the Den says so: `restart` and the start-of-chat line both print the one `upgrade` line to run. If the app won't let you change your own settings, `upgrade` says so at the hook step; `node tools/den.js line` prints the one line for your person, as in setup.
 
-**Going back to the classic Den:** `node tools/den.js unhook`, then `git checkout classic`, then `node tools/den.js hook` and `node tools/den.js restart`. The cards stay; cards and notes made in the new Den are plain files the classic Den reads too. To come forward again: `git checkout main`, `git pull`, `node tools/den.js upgrade`.
 
 ## Your copy is yours
 
