@@ -1,62 +1,62 @@
 #!/usr/bin/env node
-// My hands in the Den (Nov 8). Everything I do here lands on the person's screen live, at full size.
+// My hands in the Den. Everything I do here lands on the person's screen live, at full size.
 //
-// ONE STEP (Nov 16), the ones I reach for first:
+// ONE STEP, the ones I reach for first:
 //   node tools/den.js status                                     everything at once: is the Den open, on which screen, full screen, in front; what's out and how; the focus; what waits
 //   node tools/den.js show A [B C D] [--layout main 65 | row 50 25 25 | grid] [--focus "<title>"] [--front]
 //                                                                put these out, arranged, as what we're on; --front brings the Den forward, full screen, on the screen it's on
 //   node tools/den.js mark N "<words on the card>" "<my note>" [--color green|red|yellow]
 //                                                                bring those words in front of them, light them, and box them with the glass, note beside: every change, one step
-//   node tools/den.js big N  ·  big off                          card N full screen on his Den, and back
+//   node tools/den.js big N  ·  big off                          card N full screen on their Den, and back
 //   node tools/den.js front  ·  beside "<window title>" [split%]  ·  alone     the Den forward and full screen; the Den with another window beside it; back to the Den alone
-//   node tools/den.js away N [N...]                              put several cards away at once (only on his word)
+//   node tools/den.js away N [N...]                              put several cards away at once (only on their word)
 //
 // LOOKING AFTER IT: start [--open] · stop · restart · open · doctor · link <glass folder> · line · hook · hello
 //   pickup                    what they put on the table since you last heard (a hook runs it on each message they write)
 //   bring <other Den folder>  copy another Den's cards into this one; the other is never changed
 //
-// THE WORK AREA (Nov 12): what's out, in order. One fills it, two sit side by side, a third sits under them, four make a grid.
+// THE WORK AREA: what's out, in order. One fills it, two sit side by side, a third sits under them, four make a grid.
 //   node tools/den.js bench                                      what's out right now, and what waits on me
 //   node tools/den.js bench A B [C D]                            put exactly these out  ·  bench add N  ·  bench off N  ·  bench clear
 //   node tools/den.js move N first|left|right|last                reorder what's out
 //   node tools/den.js layout                                     how the cards that are out share the room right now
 //   node tools/den.js layout main [left%]                        the first card big on the left, the rest stacked on the right (main 70)
 //   node tools/den.js layout row [a b c d]                       all of them across, even or by share (row 50 25 25)
-//   node tools/den.js layout grid [left% [top%]]  ·  layout reset     two side by side, a third under, four in a grid. He drags the dividers too.
+//   node tools/den.js layout grid [left% [top%]]  ·  layout reset     two side by side, a third under, four in a grid. They drag the dividers too.
 //   node tools/den.js see [out.png]                              a real 1920x1080 picture of the Den, dividers and all (then Read it); never touches their screen
-//   node tools/den.js at x1 y1 x2 y2                             what in the Den is at that spot on their screen (the glass watch asks this for every mark he makes over the Den)
+//   node tools/den.js at x1 y1 x2 y2                             what in the Den is at that spot on their screen (the glass watch asks this for every mark they make over the Den)
 //   node tools/den.js merge A B "<title>" <file.html|.md|.png> ["what I took from each"]   a new card made from two, shown under them
 //   node tools/den.js imagine "<prompt>" [--from N]... [--title t | --onto N] [--ref file]... [--size 16:9]
 //                                                                make a picture right here: --from uses those cards as references (a mock-up goes in as its screenshot),
-//                                                                --onto N makes it the next version of picture N (he can step back), else a new card. He sees "the AI is working".
+//                                                                --onto N makes it the next version of picture N (they can step back), else a new card. They see "the AI is working".
 //   node tools/den.js change N <file.png> ["what changed"]       a changed picture: the next version of the same card (pictures step back and forward like mock-ups)
-//   node tools/den.js working "<what>" [--card N]  ·  working off <id>     show him a job I'm in the middle of
+//   node tools/den.js working "<what>" [--card N]  ·  working off <id>     show them a job I'm in the middle of
 //   node tools/den.js yours N "<what I need from you>"  ·  yours N off     mark a card as waiting on them (counts in "Waiting on you")
 //   node tools/den.js focus N [N...] "<title>"  ·  focus off       what we are on: the left list shows only these cards
 //
 //   node tools/den.js reveal N "<words>"                         scroll card N to those words and light them, no box (mark does both)
 //   node tools/den.js look [N]                                   the table, or one card whole (marks in words, their asks, files to Read)
-//   node tools/den.js news [--peek]                              what he did since I last looked
+//   node tools/den.js news [--peek]                              what they did since I last looked
 //   node tools/den.js put mock "<title>" <file.html> [--w 1280] [--note "<why>"] [--home <path>] [--with N]
 //   node tools/den.js put words "<title>" <file.md|-> [--note ..] [--home <path>]
 //   node tools/den.js put picture "<title>" <file>  ·  put file <file>  ·  put chart "<title>" <file.json>
 //   node tools/den.js put page <url> [--w 1280] ["title"]        capture a web page onto the table (then its words are readable)
-//   node tools/den.js put voice <dumpId>                         a voice dump: his audio and its words
+//   node tools/den.js put voice <dumpId>                         a voice dump: their audio and its words
 //   node tools/den.js version N <file.html|file.md|-> ["what changed"]   the next version, in the same card, shown
 //   node tools/den.js work N                                     where card N's working copy is. I edit that file with my own tools (Edit, a script):
 //                                                                every save is a step, and the card changes in place on their screen, glowing where I touched it
 //   node tools/den.js edit N "old" "new" ["what changed"] [--all]    the same, by find-and-replace (--old-file / --new-file for long text)
-//   node tools/den.js undo N                                     back one step (he has ↶ ↷ on the card too)
+//   node tools/den.js undo N                                     back one step (they have ↶ ↷ on the card too)
 //   node tools/den.js options "<title>" a.html b.html [c.html d.html] [--names "Quiet|Warm"] [--w 1920] [--note ..]
-//                                                                options, each its own card, all put out as separate windows on his Den
-//                                                                (his word, Nov 17: "If you have multiple things -> put them in multiple windows").
-//                                                                What was already out stays beside them, up to four. He arranges the windows himself.
+//                                                                options, each its own card, all put out as separate windows on their Den
+//
+//                                                                What was already out stays beside them, up to four. They arrange the windows himself.
 //   node tools/den.js say N "text" | --file <f>                   a note of mine on the card (its notes drop down from the tab)
 //   node tools/den.js about N "what this is"                      the line on top of its notes that catches either of us up; put ... --about "..." sets it as the card lands
-//   node tools/den.js point N ["note"]                           circle card N on his real screen with the glass
+//   node tools/den.js point N ["note"]                           circle card N on their real screen with the glass
 //   node tools/den.js settle N ["why"] · retire N · reopen N · title N "<t>" · home N <path> · keep N [<path>]
 //   node tools/den.js remove N                                   off the table (kept under data/den/removed)
-//   node tools/den.js wait [--min 20]                            block until he asks/marks/drops, then print it (run in the background)
+//   node tools/den.js wait [--min 20]                            block until they ask, mark or drop, then print it (run in the background)
 //
 // If the Den is down it says so, and a failure exits 1.
 import fs from 'node:fs';
@@ -100,8 +100,8 @@ function line(e) {
     case 'send': return 'pressed ➤ on the glass card, and with it:' + sendLines(e);
     case 'ways': return e.n ? `put ${e.n} ways on ${t}` : `cleared the ways on ${t}`;
     case 'step': return `changed ${t} in place (step ${e.v})`;
-    case 'pin': return `pinned ${t} (he's looking at it, not following me)`;
-    case 'unpin': return `let go of his pin (following me again)`;
+    case 'pin': return `pinned ${t} (they're looking at it, not following me)`;
+    case 'unpin': return `let go of their pin (following me again)`;
     case 'edit': return `edited ${t} (${(e.fields || []).join(', ')})`;
     case 'settled': return `SETTLED ${t}${e.why ? `: ${e.why}` : ''}`;
     case 'retired': return `put away ${t}`;
@@ -114,7 +114,7 @@ function line(e) {
 
 function sendLines(e) {
   const out = [];
-  for (const d of e.did || []) out.push(`\n  before that he ${d.what === 'drop' ? `dropped #${d.card} "${d.title}" from the glass` : `brought #${d.card} "${d.title}"`}`);
+  for (const d of e.did || []) out.push(`\n  before that they ${d.what === 'drop' ? `dropped #${d.card} "${d.title}" from the glass` : `brought #${d.card} "${d.title}"`}`);
   if (e.bench?.length) out.push(`\n  out in the work area: ${e.bench.map(c => '#' + c).join(', ')}`);
   return out.join('');
 }
@@ -128,7 +128,7 @@ async function fileOf(id, tmp) {
   if (c.kind === 'mock') { const out = path.join(tmp, `den-${c.id}.png`); const b = Buffer.from(await (await fetch(`${BASE}/api/den/cards/${c.id}/shot?h=1080`)).arrayBuffer()); fs.writeFileSync(out, b); return out; }
   throw new Error(`#${id} is a ${c.kind}; it has no picture to go from`);
 }
-// ---- windows (Nov 16): where the Den's window is, and bringing it forward. tile.ps1 and show.ps1 do the moving. ----
+// ---- windows: where the Den's window is, and bringing it forward. tile.ps1 and show.ps1 do the moving. ----
 const tile = async t => (await run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(here, 'tile.ps1'), ...t])).o.trim();
 async function denScreen() { const l = (await tile(['-List'])).split(/\r?\n/).find(x => / The Den\s*$/.test(x)); const m = l && /^(main|second)\b/.exec(l); return m ? m[1] : null; }
 // Forward and full screen on the screen it's already on. Not open yet: on the screen our chat isn't on.
@@ -154,7 +154,7 @@ async function look(id) {
   if (!id) {
     const d = await api('');
     const h = d.hand || {};
-    const out = [`The table (${d.cards.length} card${d.cards.length === 1 ? '' : 's'})${h.odie ? ` · I'm holding #${h.odie}` : ''}${h.pinned ? ` · he pinned #${h.pinned}` : ''}${h.compare ? ` · comparing ${h.compare.map(x => '#' + x).join(' and ')}` : ''}`];
+    const out = [`The table (${d.cards.length} card${d.cards.length === 1 ? '' : 's'})${h.odie ? ` · I'm holding #${h.odie}` : ''}${h.pinned ? ` · they pinned #${h.pinned}` : ''}${h.compare ? ` · comparing ${h.compare.map(x => '#' + x).join(' and ')}` : ''}`];
     if (d.presence) out.push(`My line: "${d.presence.doing}" (${d.presence.at})`);
     for (const c of d.cards) out.push(`- #${c.id} ${c.kind} "${c.title}"${c.versions > 1 ? ` v${c.v}/${c.versions}` : ''} · ${c.marks} mark${c.marks === 1 ? '' : 's'}${c.open ? ` (${c.open} of their unanswered)` : ''}${!c.touched && c.by === 'hunter' ? ' · NEW, untouched by me' : ''}${c.state !== 'open' ? ` · ${c.state}` : ''} · by ${c.by} · ${c.updated}${c.from ? ` · from ${c.from.app}${c.from.title ? ' "' + c.from.title + '"' : ''}` : ''}${c.excerpt ? `\n    "${c.excerpt.replace(/\s+/g, ' ').slice(0, 160)}"` : ''}`);
     if (!d.cards.length) out.push('- nothing yet');
@@ -166,15 +166,15 @@ async function look(id) {
   if (c.kind === 'mock' || c.kind === 'text') L.push(`working copy: ${path.join(dir, c.kind === 'mock' ? 'work.html' : 'work.md')} (edit it and the card changes in place)`);
   if (c.kind === 'mock') L.push(`versions: ${c.versions.map(x => `v${x.v}${x.v === c.v ? ' (showing)' : ''} by ${x.by}${x.note ? ` "${x.note}"` : ''}`).join(', ')}`, `width ${c.w}px · page: ${path.join(dir, `v${c.v}.html`)} · a screenshot: GET ${BASE}/api/den/cards/${c.id}/shot`, '');
   if (c.kind === 'text') { L.push(`versions: ${c.versions.map(x => `v${x.v}${x.v === c.v ? ' (showing)' : ''} by ${x.by}${x.note ? ` "${x.note}"` : ''}`).join(', ')}`, '', '## The words', c.body, ''); }
-  if (c.kind === 'drop' || c.kind === 'picture') { L.push(`## The picture`, c.file ? `file: ${path.join(dir, c.file.path)} (Read it)` : '(no picture)', c.from ? `from: ${c.from.app}${c.from.title ? ` · "${c.from.title}"` : ''}${c.from.url ? ` · ${c.from.url}` : ''}` : '', ''); if (c.note) L.push('## His words', c.note, ''); if (c.words) L.push('## The words in it', c.words, ''); }
+  if (c.kind === 'drop' || c.kind === 'picture') { L.push(`## The picture`, c.file ? `file: ${path.join(dir, c.file.path)} (Read it)` : '(no picture)', c.from ? `from: ${c.from.app}${c.from.title ? ` · "${c.from.title}"` : ''}${c.from.url ? ` · ${c.from.url}` : ''}` : '', ''); if (c.note) L.push('## Their words', c.note, ''); if (c.words) L.push('## The words in it', c.words, ''); }
   if (c.kind === 'page') L.push(`## The page`, c.url, c.captured ? `capture: ${path.join(dir, 'page.png')} (Read it) · ${c.w}×${c.h}` : (c.captureError ? `the capture failed: ${c.captureError} (try again: den.js capture ${c.id})` : 'not captured yet (it finishes a few seconds after put page)'), c.words ? `\n## The words on it\n${c.words.slice(0, 6000)}` : '', '');
-  if (c.kind === 'voice') L.push('## The words he said', c.body || '(none yet)', `audio: ${BASE}/api/dumps/${c.dump}/audio · ${c.seconds || '?'} s`, '');
+  if (c.kind === 'voice') L.push('## The words they said', c.body || '(none yet)', `audio: ${BASE}/api/dumps/${c.dump}/audio · ${c.seconds || '?'} s`, '');
   if (c.kind === 'chart') L.push('## The chart', `${c.body.labels.length} points, ${c.body.labels[0]} to ${c.body.labels.at(-1)}; last ${c.body.values.at(-1)}`, '');
   if (c.file && c.kind === 'file') L.push(`## The file`, path.join(dir, c.file.path), '');
   L.push('## Marks');
   if (!c.marks.length) L.push('- none');
-  for (const m of c.marks) L.push(`- mark ${m.n} (${m.by === 'odie' ? 'mine' : 'HIS'}): ${m.said}${m.note ? ` — "${m.note}"` : ''}${m.snip ? ` · his crop: ${path.join(dir, m.snip)}` : ''}${m.reply ? `\n  I answered: ${m.reply.text.replace(/\n/g, ' ').slice(0, 300)}${m.fb === 'confused' ? '\n  HE WAS CONFUSED: answer again, clearer' : m.fb === 'good' ? '\n  he marked it GOOD PUSHBACK' : ''}` : m.by === 'hunter' && !m.done ? `\n  not answered yet (den.js answer ${c.id} ${m.n} "..." or a new version, then den.js done ${c.id} ${m.n})` : ''}`);
-  const talk = [...c.asks.map(a => ({ at: a.at, s: `- he ${a.kind === 'look' ? 'tapped look at this' : 'asked: ' + a.kind}${a.text ? ` "${a.text}"` : ''} (${a.at}${a.answered ? ', answered' : ', OPEN'})` })), ...c.says.map((s, i) => ({ at: s.at, s: `- note ${s.n || i + 1}, ${s.by === 'odie' ? 'mine' : 'HIS'} (${s.at}${s.edited ? ', edited ' + s.edited : ''}): ${s.text.slice(0, 600)}` }))].sort((a, b) => a.at.localeCompare(b.at));
+  for (const m of c.marks) L.push(`- mark ${m.n} (${m.by === 'odie' ? 'mine' : 'THEIRS'}): ${m.said}${m.note ? ` — "${m.note}"` : ''}${m.snip ? ` · their crop: ${path.join(dir, m.snip)}` : ''}${m.reply ? `\n  I answered: ${m.reply.text.replace(/\n/g, ' ').slice(0, 300)}${m.fb === 'confused' ? '\n  THEY WERE CONFUSED: answer again, clearer' : m.fb === 'good' ? '\n  they marked it GOOD PUSHBACK' : ''}` : m.by === 'hunter' && !m.done ? `\n  not answered yet (den.js answer ${c.id} ${m.n} "..." or a new version, then den.js done ${c.id} ${m.n})` : ''}`);
+  const talk = [...c.asks.map(a => ({ at: a.at, s: `- they ${a.kind === 'look' ? 'tapped look at this' : 'asked: ' + a.kind}${a.text ? ` "${a.text}"` : ''} (${a.at}${a.answered ? ', answered' : ', OPEN'})` })), ...c.says.map((s, i) => ({ at: s.at, s: `- note ${s.n || i + 1}, ${s.by === 'odie' ? 'mine' : 'THEIRS'} (${s.at}${s.edited ? ', edited ' + s.edited : ''}): ${s.text.slice(0, 600)}` }))].sort((a, b) => a.at.localeCompare(b.at));
   L.push('', '## What this is', c.about?.text || '(no line yet: den.js about ' + c.id + ' "...")');
   L.push('', '## Asks and notes', ...(talk.length ? talk.map(t => t.s) : ['- quiet so far']));
   return L.join('\n');
@@ -195,10 +195,10 @@ async function put(kind, a, { w, note, home, withId }) {
   throw new Error(`put what? mock, words, picture, file, chart, page or voice (not "${kind}")`);
 }
 
-/** Circle card N on his real screen: ask the page where it is, then the glass draws there. */
+/** Circle card N on their real screen: ask the page where it is, then the glass draws there. */
 async function point(id, note) {
   const r = await api('/where/' + id);
-  if (!r.where) return console.log(`the Den isn't showing #${id} on screen right now (den.js hold ${id} first, or he has the Den closed)`);
+  if (!r.where) return console.log(`the Den isn't showing #${id} on screen right now (den.js hold ${id} first, or they have the Den closed)`);
   const s = r.where.screen, glass = (await import('./admin.mjs')).glassTool(); if (!glass) { console.log('no glass is linked (den.js link <glass folder>)'); return; }
   const node = process.env.NODE_EXE || process.execPath;
   const res = await new Promise(resolve => { const p = spawn(node, [glass, 'box', String(s.x1 - 6), String(s.y1 - 6), String(s.x2 + 6), String(s.y2 + 6), ...(note ? [note] : [])], { stdio: ['ignore', 'pipe', 'pipe'] }); let o = ''; p.stdout.on('data', d => o += d); p.stderr.on('data', d => o += d); p.on('close', c => resolve({ c, o: o.trim() })); });
@@ -261,11 +261,11 @@ async function main() {
     case 'change': { const id = Number(a[0]), file = a[1]; const c = await api(`/cards/${id}/versions`, { method: 'POST', body: { data: fs.readFileSync(file).toString('base64'), mime: MIME[path.extname(file).toLowerCase()] || 'image/png', note: a[2], by: 'odie' }, timeout: 60000 }); console.log(`#${id} is now at change ${c.v} of ${c.versions.length}`); break; }
     case 'working': { if (a[0] === 'off') { await api('/jobs/' + a[1], { method: 'DELETE' }); console.log('done showing'); break; } const j = await api('/jobs', { method: 'POST', body: { what: a[0], card: flag('--card') } }); console.log(`showing "${j.what}" as job ${j.id} (den.js working off ${j.id} when done)`); break; }
     case 'yours': { await api(`/cards/${a[0]}`, { method: 'PATCH', body: { waiting: a[1] === 'off' ? null : a[1], by: 'odie' } }); console.log(a[1] === 'off' ? `#${a[0]} no longer waits on them` : `#${a[0]} waits on them: ${a[1]}`); break; }
-    case 'asks': case 'did': console.log('asks are gone (Nov 17): his one send is the glass card\'s ➤, and what he added rides along with it'); process.exitCode = 1; break;
+    case 'asks': case 'did': console.log('asks are gone: their one send is the glass card\'s ➤, and what they added rides along with it'); process.exitCode = 1; break;
     case 'news': { const n = await api('/news' + (flag('--peek', false) ? '?peek=1' : '')); if (!n.events.length) console.log('nothing new from them in the Den'); else { console.log('Since I last looked, the person:'); for (const e of n.events) console.log('- ' + line(e)); } break; }
     case 'put': { const about = flag('--about'); const opts = { w: flag('--w'), note: flag('--note'), home: flag('--home'), withId: flag('--with') }; const c = await put(a[0], a.slice(1), opts);
       if (about) await api(`/cards/${c.id}`, { method: 'PATCH', body: { about, by: 'odie' } }).catch(() => {});
-      // beside what's out, newest first (Nov 17: put went through the old hold, which cleared his cards off the work area)
+      // beside what's out, newest first (Nov 17: put went through the old hold, which cleared their cards off the work area)
       { const d = await api(''); const was = d.bench.filter(x => x !== c.id); await api('/bench', { method: 'POST', body: { items: [c.id, ...was].slice(0, 4), by: 'odie' } }).catch(() => {}); const off = was.slice(3); if (off.length) console.log('room for four, so these came off the work area (still on the tabs): ' + off.map(i => '#' + i).join(' ')); }
       console.log(`#${c.id} ${c.kind} "${c.title}" is on the table and showing${c.kind === 'page' ? ' (capturing…)' : ''}`); break; }
     case 'version': { const id = Number(a[0]), f = a[1], note = a[2]; const c = await api('/cards/' + id); const body = c.kind === 'mock' ? { html: readArg(f), note, by: 'odie', w: flag('--w') ? Number(flag('--w')) : undefined } : { body: readArg(f), note, by: 'odie' }; const r = await api(`/cards/${id}/versions`, { method: 'POST', body }); await api(`/cards/${id}/draft`, { method: 'POST', body: { text: '', done: true } }).catch(() => {}); console.log(`v${r.v} of #${id} is showing`); break; }
@@ -274,7 +274,7 @@ async function main() {
     case 'undo': { const c = await api('/cards/' + a[0]); const i = c.versions.findIndex(x => x.v === c.v); if (i < 1) { console.log(`#${c.id} is at its first version`); break; } await api(`/cards/${c.id}/version`, { method: 'PATCH', body: { v: c.versions[i - 1].v, by: 'odie' } }); console.log(`#${c.id} back to step ${i} of ${c.versions.length}`); break; }
     case 'options': case 'ways': {
       const names = (flag('--names') || '').split('|'), w = flag('--w'), note = flag('--note');
-      if (a[1] === 'off' || /^\d+$/.test(a[0] || '')) { console.log('ways are gone (Nov 17): options are separate cards now. den.js options "<title>" a.html b.html'); process.exitCode = 1; break; }
+      if (a[1] === 'off' || /^\d+$/.test(a[0] || '')) { console.log('ways are gone: options are separate cards now. den.js options "<title>" a.html b.html'); process.exitCode = 1; break; }
       const title = String(a[0] || '').replace(/^new:?/, '').trim(), files = a.slice(1);
       if (!title || files.length < 1) { console.log('usage: den.js options "<title>" a.html b.html [c.html d.html] [--names "A|B"] [--w 1920]'); process.exitCode = 1; break; }
       const made = [];
@@ -283,7 +283,7 @@ async function main() {
       await api('/bench', { method: 'POST', body: { items: [...made.map(c => c.id), ...was].slice(0, 4), by: 'odie' } });
       console.log(made.map(c => `#${c.id} "${c.title}"`).join(' · ') + ' are out as their own windows');
       console.log(await benchLine()); break; }
-    case 'pick': console.log('pick is gone with ways (Nov 17): he tells me which window, and I carry on from that card'); process.exitCode = 1; break;
+    case 'pick': console.log('pick is gone with ways: they tell me which window, and I carry on from that card'); process.exitCode = 1; break;
     case 'status': {
       const wins = (await tile(['-List'])).split(/\r?\n/).filter(l => / The Den\s*$/.test(l));
       const st = await api('/ask-page', { method: 'POST', body: { ask: 'state' } });
@@ -298,7 +298,7 @@ async function main() {
       const fo = flag('--focus'), front = flag('--front', false), only = flag('--only', false);
       const ids = args.filter(x => /^\d+$/.test(x)).map(Number).slice(0, 4);
       if (!ids.length) { console.log('usage: den.js show A [B C D] [--layout main 65 | row 50 25 25 | grid] [--focus "<title>"] [--front] [--only]  (adds beside what is out; --only puts out exactly these)'); break; }
-      // Nov 17: show used to set exactly what was out, and took his cards off. Now it adds beside them, newest first; --only for exactly these.
+      // Nov 17: show used to set exactly what was out, and took their cards off. Now it adds beside them, newest first; --only for exactly these.
       const was = only ? [] : (await api('')).bench.filter(x => !ids.includes(x));
       const items = [...ids, ...was].slice(0, 4), off = was.filter(x => !items.includes(x));
       await api('/bench', { method: 'POST', body: { items, by: 'odie' } });
@@ -313,7 +313,7 @@ async function main() {
       const d0 = await api(''); const st = await api('/ask-page', { method: 'POST', body: { ask: 'state' } });
       if (!st.ok) { console.log('not marked: no Den is showing on their screen (den.js front brings it forward; if they are busy there, the change waits on the table)'); process.exitCode = 1; break; }
       if (!d0.bench.includes(id) && st.big !== id) { await api('/bench', { method: 'POST', body: { items: [...d0.bench.filter(x => x !== id), id].slice(-4), by: 'odie' } }); await new Promise(r => setTimeout(r, 1300)); }
-      let r; for (let i = 0; i < 8; i++) { r = await api('/ask-page', { method: 'POST', body: { ask: 'locate', id, text: words } }); if (r.ok) break; await new Promise(z => setTimeout(z, 500)); }   // the page may not have drawn a change yet (Nov 17)
+      let r; for (let i = 0; i < 8; i++) { r = await api('/ask-page', { method: 'POST', body: { ask: 'locate', id, text: words } }); if (r.ok) break; await new Promise(z => setTimeout(z, 500)); }   // the page may not have drawn a change yet
       if (!r.ok) { console.log(`not marked: ${r.why}`); process.exitCode = 1; break; }
       const s = r.screen, glassJs = (await import('./admin.mjs')).glassTool(); if (!glassJs) { console.log(`#${id}: "${r.words.slice(0, 70)}" is in front of them and lit. No glass is linked, so there is no box on it (den.js link <glass folder> adds that); say where to look in chat.`); break; } const gargs = [glassJs, 'box', String(s.x1 - 6), String(s.y1 - 4), String(s.x2 + 6), String(s.y2 + 4)]; if (note) gargs.push(note); if (color) gargs.push('--color', color);
       const g = (await run(process.execPath, gargs)).o.trim();
@@ -321,7 +321,7 @@ async function main() {
       console.log(`#${id}: "${r.words.slice(0, 70)}" is in front of them at x ${s.x1}-${s.x2}, y ${s.y1}-${s.y2} · ${g}`); break; }
     case 'big': {
       const off = a[0] === 'off' || !a[0]; const r = await api('/ask-page', { method: 'POST', body: { ask: 'big', id: off ? null : Number(a[0]) } });
-      console.log(r.ok ? (off ? 'back to the work area' : `#${a[0]} is full screen on his Den`) : `not done: ${r.why}`); if (!r.ok) process.exitCode = 1; break; }
+      console.log(r.ok ? (off ? 'back to the work area' : `#${a[0]} is full screen on their Den`) : `not done: ${r.why}`); if (!r.ok) process.exitCode = 1; break; }
     case 'front': console.log(await denFront()); break;
     case 'beside': {
       if (!a[0]) { console.log('usage: den.js beside "<window title>" [the Den\'s share, like 62]'); break; }
@@ -329,7 +329,7 @@ async function main() {
     case 'alone': console.log(await tile(['-Screen', (await denScreen()) || 'second', '-Shape', 'full', '-Titles', 'The Den'])); break;
     case 'away': { const ids = a.filter(x => /^\d+$/.test(x)); for (const id of ids) await api(`/cards/${id}`, { method: 'PATCH', body: { state: 'retired', by: 'odie' } }); console.log(ids.length ? `put away: ${ids.map(i => '#' + i).join(' ')}` : 'usage: den.js away N [N...]'); break; }
     case 'now': case 'hold': case 'compare': case 'type': case 'box': case 'circle': case 'underline': case 'answer': case 'done':
-      console.log(`"${cmd}" was an older Den's command and the page no longer shows it. Use: show (what's out), mark (my box on their screen, by the glass), say (my line on a card), glass.js answer (under his mark).`); process.exitCode = 1; break;
+      console.log(`"${cmd}" was an older Den's command and the page no longer shows it. Use: show (what's out), mark (my box on their screen, by the glass), say (my line on a card), glass.js answer (under their mark).`); process.exitCode = 1; break;
     case 'layout': {   // how the cards that are out share the room
       const shape = a[0]; const nums = a.slice(1).map(Number).filter(n => n > 0);
       const tell = l => !l ? 'layout: the even grid (the default)' : l.shape === 'row' ? 'layout: row, ' + (l.cols ? 'shares ' + l.cols.join(' / ') : 'even') : l.shape === 'main' ? `layout: main, the first card takes the left ${Math.round(l.split * 100)}%` : `layout: grid, left ${Math.round(l.split * 100)}%, top ${Math.round(l.rsplit * 100)}%`;

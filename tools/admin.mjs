@@ -149,7 +149,7 @@ function hook(port) {
   s.hooks.SessionStart.push({ hooks: [{ type: 'command', command: `"${node}" "${tool}" hello`, timeout: 5 }] });
   // Their message is the send: what they put on the table since you last heard rides in with each message they write.
   s.hooks.UserPromptSubmit ??= [];
-  s.hooks.UserPromptSubmit = s.hooks.UserPromptSubmit.map(g => ({ ...g, hooks: (g.hooks || []).filter(x => !/den.js"? pickup/.test(x.command || '')) })).filter(g => g.hooks.length);
+  s.hooks.UserPromptSubmit = s.hooks.UserPromptSubmit.map(g => ({ ...g, hooks: (g.hooks || []).filter(x => !/den\.js"? pickup/.test(x.command || '')) })).filter(g => g.hooks.length);
   s.hooks.UserPromptSubmit.push({ hooks: [{ type: 'command', command: `"${node}" "${tool}" pickup --hook`, timeout: 5 }] });
   if (conf()?.glass) { s.env ??= {}; s.env.GLASS_DEN_URL = `http://127.0.0.1:${port}`; }
   fs.writeFileSync(file, JSON.stringify(s, null, 2) + '\n');
