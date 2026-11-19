@@ -228,9 +228,10 @@ async function upgrade(BASE, port) {
     const line = a => `  - "${String(a.text || '').replace(/\s+/g, ' ').slice(0, 300)}"${(a.cards || []).length ? ` (cards ${a.cards.map(c => '#' + c).join(' ')})` : ''}`;
     if (open.length) console.log(`They sent these in the old Den and they were never closed:\n${open.map(line).join('\n')}`);
     if (typed.length) console.log(`They typed these in the old Den and never pressed Send:\n${typed.map(line).join('\n')}`);
-    fs.copyFileSync(ob, path.join(ROOT, 'data', 'outbox-classic.json'));
+    const keep = ['outbox-classic.json', 'outbox-classic-' + Date.now() + '.json'].find(n => !fs.existsSync(path.join(ROOT, 'data', n)));
+    fs.copyFileSync(ob, path.join(ROOT, 'data', keep));
     fs.writeFileSync(ob, JSON.stringify({ sentSeq: o.sentSeq || 0 }));
-    console.log(`The old outbox is kept at data/outbox-classic.json, and the new one starts where their last send left off.${open.length || typed.length ? ' Bring those up with your person.' : ''}`);
+    console.log(`The old outbox is kept at data/${keep}, and the new one starts where their last send left off.${open.length || typed.length ? ' Bring those up with your person.' : ''}`);
   }
   // 2 · Ways never picked: options are separate cards now, so these stay as files beside their card.
   const tdir = path.resolve(ROOT, conf().table || '.', 'table');
