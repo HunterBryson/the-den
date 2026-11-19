@@ -14,6 +14,7 @@
 // LOOKING AFTER IT: start [--open] · stop · restart · open · doctor · link <glass folder> · line · hook · hello
 //   pickup                    what they put on the table since you last heard (a hook runs it on each message they write)
 //   bring <other Den folder>  copy another Den's cards into this one; the other is never changed
+//   unhook                    take this Den's lines out of the Claude settings (going back)
 //
 // THE WORK AREA: what's out, in order. One fills it, two sit side by side, a third sits under them, four make a grid.
 //   node tools/den.js bench                                      what's out right now, and what waits on me
@@ -71,7 +72,8 @@ const BASE = process.env.DEN_URL || 'http://127.0.0.1:' + PORT;
 const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:'));
 const args = process.argv.slice(2);
 const cmd = args.shift();
-const ADMIN = ['start', 'stop', 'restart', 'doctor', 'link', 'open', 'hello', 'line', 'hook', 'pickup', 'bring'];
+const ADMIN = ['start', 'stop', 'restart', 'doctor', 'link', 'open', 'hello', 'line', 'hook', 'unhook', 'pickup', 'bring'];
+const QUIET_HOOK = cmd === 'pickup' && args.includes('--hook');
 const flag = (name, takes = true) => { const i = args.indexOf(name); if (i < 0) return null; const v = takes ? args[i + 1] : true; args.splice(i, takes ? 2 : 1); return v; };
 const readArg = v => (v === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(v, 'utf8'));
 
@@ -207,6 +209,7 @@ async function point(id, note) {
 
 async function main() {
   // hello is a start-of-chat hook: it always exits 0, or its warning never reaches the chat (cold test 2).
+  if (CONF_BROKEN && QUIET_HOOK) return;
   if (CONF_BROKEN && cmd !== 'doctor') { console.log(`${cmd === 'hello' ? 'The Den: ' : ''}config.json is broken (${CONF_BROKEN}). Fix it (write paths with forward slashes), then start the Den again.`); if (cmd !== 'hello') process.exitCode = 1; return; }
   if (ADMIN.includes(cmd)) return (await import('./admin.mjs')).run(cmd, args, { BASE, here });
   // Only ever work on this folder's Den: another copy on the same port is not ours to change (cold test 1).
@@ -233,8 +236,8 @@ async function main() {
     case 'see': {
       const out = path.resolve(a[0] || path.join(process.env.TEMP || '.', 'den-see.png'));
       fs.rmSync(out, { force: true }); // never report an old picture as this one
-      await run(process.execPath, [path.join(here, 'den-drive.mjs'), 'shot', out], { timeout: 60000 });
-      console.log(fs.existsSync(out) ? `the Den as they see it (1920x1080): ${out}` : 'the picture failed'); if (!fs.existsSync(out)) process.exitCode = 1; break; }
+      const r0 = await run(process.execPath, [path.join(here, 'den-drive.mjs'), 'shot', out], { timeout: 60000 });
+      console.log(fs.existsSync(out) ? `the Den as they see it (1920x1080): ${out}` : 'the picture failed: ' + (r0.o || 'no reason given').trim().split('\n').slice(-2).join(' ')); if (!fs.existsSync(out)) process.exitCode = 1; break; }
     case 'at': { const r = await api(`/at?x1=${a[0]}&y1=${a[1]}&x2=${a[2]}&y2=${a[3]}`); console.log(r.say || 'nothing of the Den is there (or the Den is not open)'); break; }
     case 'merge': {
       const [A, B, title, file, note] = a; const ext = path.extname(file).toLowerCase();
@@ -261,7 +264,8 @@ async function main() {
     case 'change': { const id = Number(a[0]), file = a[1]; const c = await api(`/cards/${id}/versions`, { method: 'POST', body: { data: fs.readFileSync(file).toString('base64'), mime: MIME[path.extname(file).toLowerCase()] || 'image/png', note: a[2], by: 'odie' }, timeout: 60000 }); console.log(`#${id} is now at change ${c.v} of ${c.versions.length}`); break; }
     case 'working': { if (a[0] === 'off') { await api('/jobs/' + a[1], { method: 'DELETE' }); console.log('done showing'); break; } const j = await api('/jobs', { method: 'POST', body: { what: a[0], card: flag('--card') } }); console.log(`showing "${j.what}" as job ${j.id} (den.js working off ${j.id} when done)`); break; }
     case 'yours': { await api(`/cards/${a[0]}`, { method: 'PATCH', body: { waiting: a[1] === 'off' ? null : a[1], by: 'odie' } }); console.log(a[1] === 'off' ? `#${a[0]} no longer waits on them` : `#${a[0]} waits on them: ${a[1]}`); break; }
-    case 'asks': case 'did': console.log('asks are gone: their one send is the glass card\'s ➤, and what they added rides along with it'); process.exitCode = 1; break;
+    case 'asks': case 'did': case 'wait': console.log(`${cmd} is gone: there's no Send button. What they put on the table comes with the next thing they say to you, in chat or through the glass. To see it now: den.js pickup`); process.exitCode = 1; break;
+    case 'wait-old':
     case 'news': { const n = await api('/news' + (flag('--peek', false) ? '?peek=1' : '')); if (!n.events.length) console.log('nothing new from them in the Den'); else { console.log('Since I last looked, the person:'); for (const e of n.events) console.log('- ' + line(e)); } break; }
     case 'put': { const about = flag('--about'); const opts = { w: flag('--w'), note: flag('--note'), home: flag('--home'), withId: flag('--with') }; const c = await put(a[0], a.slice(1), opts);
       if (about) await api(`/cards/${c.id}`, { method: 'PATCH', body: { about, by: 'odie' } }).catch(() => {});
@@ -358,7 +362,7 @@ async function main() {
     case 'touch': await api(`/cards/${a[0]}`, { method: 'PATCH', body: { touched: true, by: 'odie' } }); console.log(`#${a[0]} touched`); break;
     case 'remove': { const r = await api(`/cards/${a[0]}`, { method: 'DELETE' }); console.log(`#${a[0]} off the table (kept at ${r.keptAt})`); break; }
     case 'capture': { const c = await api(`/cards/${a[0]}/capture`, { method: 'POST', timeout: 60000 }); console.log(`captured #${c.id}: ${c.w}×${c.h}, ${c.words ? c.words.split('\n').length + ' lines of words' : 'no words read'}`); break; }
-    case 'wait': {
+    case 'wait-retired': {
       const min = Number(flag('--min') || 20);
       // Asked in four-minute pieces: Node drops a request that hears nothing for five minutes, which used to end this watch early and call the Den dark.
       let r = { ask: null }; const until = Date.now() + min * 60000;

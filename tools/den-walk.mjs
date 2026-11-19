@@ -53,7 +53,7 @@ export default async d => {
     await press('#addt'); await d.wait(500); ok('Add to table opens the whole table', await has('#all', 'open'), (await count('#side .th')) + ' pictures');
     ok('Everything has its kinds', (await count('#kinds button')) === 7);
     await d.eval('[...document.querySelectorAll("#kinds button")].find(x => x.textContent === "Pictures").click()'); await d.wait(400);
-    ok('Pictures narrows it', (await count('#side .th')) > 0 && /^Pictures/.test(await d.text('#allt')), await d.text('#allt')); await shot('walk-everything');
+    ok('Pictures narrows it', ((await count('#side .th')) > 0 || !(await state()).cards.some(c => c.kind === 'picture' && c.state !== 'retired')) && /^Pictures/.test(await d.text('#allt')), await d.text('#allt')); await shot('walk-everything');
     await d.eval('[...document.querySelectorAll("#kinds button")].find(x => x.textContent === "Waiting on you").click()'); await d.wait(400);
     ok('Waiting on you narrows it', /^Waiting on you/.test(await d.text('#allt')), await d.text('#allt'));
     await d.eval('[...document.querySelectorAll("#kinds button")].find(x => x.textContent === "All").click()'); await d.wait(300);
@@ -86,5 +86,5 @@ export default async d => {
   } finally {
     await post('/bench', { items: before.bench, by: 'odie' }); await post('/bench/layout', { layout: before.layout || { shape: 'reset' }, by: 'odie' });
   }
-  console.log(fails ? `${fails} FAILED` : 'all passed');
+  console.log(fails ? `${fails} FAILED` : 'all passed'); if (fails) process.exitCode = 1;
 };

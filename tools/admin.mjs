@@ -57,7 +57,9 @@ export async function run(cmd, args, { BASE }) {
     const h = await health(BASE);
     if (!h) { console.log('The Den is not running.'); return; }
     if (!h.den || !same(h.folder, ROOT)) return fail(`What's on port ${port} isn't this Den, so I left it alone.`);
-    await fetch(BASE + '/api/quit', { method: 'POST' }).catch(() => {}); console.log('The Den stopped.'); return;
+    await fetch(BASE + '/api/quit', { method: 'POST' }).catch(() => {});
+    for (let i = 0; i < 40 && await health(BASE); i++) await sleep(250);
+    console.log('The Den stopped.'); return;
   }
   if (cmd === 'open') {
     const h = await health(BASE); if (!h?.den) return fail('The Den is not running. Start it: node tools/den.js start --open');
@@ -115,15 +117,17 @@ export async function run(cmd, args, { BASE }) {
     const h = await health(BASE); if (h?.den && same(h.folder, ROOT)) { await fetch(BASE + '/api/quit', { method: 'POST' }).catch(() => {}); await sleep(700); }
     if (has.length) { const keep = path.join(path.dirname(dst), 'table-before-bring-' + Date.now()); fs.renameSync(dst, keep); console.log(`This Den's own cards are kept at ${keep}.`); }
     fs.cpSync(src, dst, { recursive: true });
+    try { fs.rmSync(path.join(ROOT, 'data', 'focus.json'), { force: true }); } catch {}
     // The table's small state (what's out, what was done, where the last send left off) comes along, so it opens the way they left it.
     const sd = path.join(from, 'data'), dd = path.join(ROOT, 'data'); fs.mkdirSync(dd, { recursive: true });
     for (const f of ['bench.json', 'events.jsonl', 'hand.json', 'removed']) { const a = path.join(sd, f); if (fs.existsSync(a)) fs.cpSync(a, path.join(dd, f), { recursive: true }); }
     const n = fs.readdirSync(dst).filter(x => /^\d+$/.test(x)).length;
     console.log(`Copied ${n} card${n === 1 ? '' : 's'} from ${from} into this Den. The other Den is exactly as it was.${h?.den ? ' Starting this one again.' : ''}`);
-    if (h?.den && same(h.folder, ROOT)) return run('start', [], { BASE, here });
+    if (h?.den && same(h.folder, ROOT)) return run('start', [], { BASE });
     return;
   }
   if (cmd === 'doctor') return doctor(BASE, port);
+  if (cmd === 'unhook') return unhook();
   if (cmd === 'hook') return hook(port);
   if (cmd === 'line') {
     const node = (realNode() || process.execPath);
@@ -154,7 +158,26 @@ function hook(port) {
   if (conf()?.glass) { s.env ??= {}; s.env.GLASS_DEN_URL = `http://127.0.0.1:${port}`; }
   fs.writeFileSync(file, JSON.stringify(s, null, 2) + '\n');
   const skilled = installSkill(node, tool);
-  console.log(`${skilled}Every new chat now gets a line about the Den, what they put on the table comes in with each message they write${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at settings.json.before-den' : ''}.`);
+  console.log(`${skilled}Every new chat now gets a line about the Den, what they put on the table comes in with each message they write${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at ' + (file + '.before-den').split(path.sep).join('/') : ''}.`);
+}
+
+/** Takes this Den's start-of-chat and message lines out of ~/.claude/settings.json (and its GLASS_DEN_URL), leaving every other line. A copy is kept first. */
+function unhook() {
+  const file = path.join(os.homedir(), '.claude', 'settings.json');
+  if (!fs.existsSync(file)) { console.log('There are no Claude settings to change.'); return; }
+  let s; try { s = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { console.log(`${file} doesn't read as JSON (${e.message}), so I left it alone.`); process.exitCode = 1; return; }
+  const mine = path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/').toLowerCase();
+  let n = 0;
+  for (const ev of ['SessionStart', 'UserPromptSubmit']) {
+    if (!s.hooks?.[ev]) continue;
+    s.hooks[ev] = s.hooks[ev].map(g => ({ ...g, hooks: (g.hooks || []).filter(x => { const hit = String(x.command || '').replace(/\\/g, '/').toLowerCase().includes(mine); if (hit) n++; return !hit; }) })).filter(g => g.hooks.length);
+    if (!s.hooks[ev].length) delete s.hooks[ev];
+  }
+  if (s.env?.GLASS_DEN_URL === `http://127.0.0.1:${(conf() || {}).port || 7950}`) { delete s.env.GLASS_DEN_URL; n++; }
+  if (!n) { console.log('Nothing from this Den is in your settings.'); return; }
+  fs.copyFileSync(file, file + '.before-unhook');
+  fs.writeFileSync(file, JSON.stringify(s, null, 2) + '\n');
+  console.log(`Took this Den's ${n} line${n > 1 ? 's' : ''} out of ${file.split(path.sep).join('/')} (a copy is at settings.json.before-unhook). Everything else is as it was.`);
 }
 
 /** The Den skill, into ~/.claude/skills/the-den, so its moves reach every chat in any folder, not only chats opened here. */
