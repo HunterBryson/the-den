@@ -64,7 +64,7 @@ function page() {
   let h = fs.readFileSync(PAGE, 'utf8');
   h = h.replace(/\{\{AI\}\}/g, esc(cfg.ai)).replace(/\{\{PERSON\}\}/g, esc(cfg.person));
   h = h.replace('{{PICTURES}}', PICTURES ? 'true' : 'false');
-  h = h.replace('{{HOME}}', cfg.homebase ? `<a class="home" href="${esc(cfg.homebase)}">← Homebase</a>` : '');
+  h = h.replace('{{HOME}}', cfg.homebase ? `      <a class="nb" id="home" href="${esc(cfg.homebase)}"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Homebase</a>` : '');
   return h;
 }
 const STATIC = { '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
@@ -112,7 +112,10 @@ const server = http.createServer(async (req, res) => {
       if (await den.handle(req, res, sub)) return;
       return res.status(404).json({ error: 'no such Den call' });
     }
-    if (p === '/' || p === '/den' || p === '/den/' || p === '/index.html') return res.set('Cache-Control', 'no-store').type('html').send(page());
+    // What we are on: den.js focus writes it, the page reads it on every refresh.
+    if (p === '/den/focus.json' || p === '/focus.json') { const f = path.join(DATA, 'focus.json'); if (!fs.existsSync(f)) return res.status(404).json({ error: 'no focus set' }); return res.set('Cache-Control', 'no-store').type('json').send(fs.readFileSync(f, 'utf8')); }
+    // The etag is how the open page notices its file changed and reloads itself.
+    if (p === '/' || p === '/den' || p === '/den/' || p === '/index.html') return res.set('Cache-Control', 'no-store').set('ETag', '"' + pageVersion() + '"').type('html').send(page());
     const file = path.join(HERE, 'app', path.basename(p));
     if (STATIC[path.extname(file)] && fs.existsSync(file)) return res.type(STATIC[path.extname(file)]).sendFile(file);
     res.status(404).json({ error: 'not found' });
