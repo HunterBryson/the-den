@@ -6,9 +6,12 @@
 #   tile.ps1 -Screen second -Shape full -Titles "The Den"                    back to full screen (maximized)
 #   tile.ps1 -Close -Titles "Words"                                          close a window (only ones I opened)
 # A title matches when the window's title starts with or contains the words; the first match wins, exact titles first.
+# Two Dens can be open, both titled "The Den". A Den's page ends its title with its port, in characters nobody sees
+# (a word joiner, then the port in binary as zero-width spaces and non-joiners). -List shows it as "The Den (port 7950)",
+# and with -Den <port> the title "The Den" means only that Den's window, never another one's.
 # It never touches a window on the other screen unless I name it, so I look (glass.js shot all) before I use it:
 # our chat stays uncovered, and their windows go back to full screen when we're done.
-param([switch]$List, [switch]$Close, [string]$Screen = 'second', [string]$Shape = 'halves', [string[]]$Titles = @(), [int]$Split = 60)
+param([switch]$List, [switch]$Close, [string]$Screen = 'second', [string]$Shape = 'halves', [string[]]$Titles = @(), [int]$Split = 60, [int]$Den = 0)
 # from bash, -Titles "A","B" arrives as one string; split it
 $Titles = @($Titles | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 Add-Type -AssemblyName System.Windows.Forms
@@ -39,11 +42,13 @@ function Wins {
     $cloaked = 0; [void][Tile]::DwmGetWindowAttribute($h, 14, [ref]$cloaked, 4); if ($cloaked) { continue }
     $r = New-Object Tile+RECT; [void][Tile]::GetWindowRect($h, [ref]$r); if (($r.R - $r.L) -lt 200 -or ($r.B - $r.T) -lt 120) { continue }
     if ($t -match '^(Program Manager|Windows Input Experience|The glass|the-glass|NVIDIA GeForce Overlay)$' -or $t -like '*glass*') { continue }
-    [pscustomobject]@{ H = $h; Title = $t; X = $r.L; Y = $r.T; W = $r.R - $r.L; Hh = $r.B - $r.T; Max = [Tile]::IsZoomed($h); Min = [Tile]::IsIconic($h) }
+    $port = 0; if ($t -match '\u2060([\u200B\u200C]+)') { $port = [Convert]::ToInt32((($matches[1] -replace '\u200B', '0') -replace '\u200C', '1'), 2); $t = ($t -replace '\u2060[\u200B\u200C]+', '') + " (port $port)" }
+    [pscustomobject]@{ H = $h; Title = $t; DenPort = $port; X = $r.L; Y = $r.T; W = $r.R - $r.L; Hh = $r.B - $r.T; Max = [Tile]::IsZoomed($h); Min = [Tile]::IsIconic($h) }
   }
 }
 function Find([string]$words) {
   $all = @(Wins)
+  if ($Den -and $words -eq 'The Den') { return $all | Where-Object { $_.DenPort -eq $Den } | Select-Object -First 1 }
   $hit = $all | Where-Object { $_.Title -eq $words } | Select-Object -First 1
   if (-not $hit) { $hit = $all | Where-Object { $_.Title -like "$words*" } | Select-Object -First 1 }
   if (-not $hit) { $hit = $all | Where-Object { $_.Title -like "*$words*" } | Select-Object -First 1 }

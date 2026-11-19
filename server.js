@@ -126,4 +126,13 @@ const server = http.createServer(async (req, res) => {
 });
 server.on('error', e => { log('server error', e.code || e.message); console.error(e.code === 'EADDRINUSE' ? `Port ${cfg.port} is taken. Another Den (or something else) is on it: node tools/den.js doctor` : e.message); process.exit(1); });
 server.requestTimeout = 0; // den.js wait holds a request open for minutes
-server.listen(cfg.port, '127.0.0.1', () => { log('started on', cfg.port, 'from', HERE); console.log(`The Den is at http://127.0.0.1:${cfg.port}/`); });
+// Where this copy is running, kept in its own folder: den.js finds the running Den by its folder through this file,
+// so changing "port" in config.json and restarting stops the old one instead of leaving two.
+const RUN = path.join(DATA, 'den.run.json');
+server.listen(cfg.port, '127.0.0.1', () => {
+  log('started on', cfg.port, 'from', HERE); console.log(`The Den is at http://127.0.0.1:${cfg.port}/`);
+  try { fs.writeFileSync(RUN, JSON.stringify({ pid: process.pid, port: cfg.port, folder: HERE, started: new Date().toISOString() }) + '\n'); } catch {}
+  try { fs.rmSync(path.join(DATA, 'starting'), { force: true }); } catch {}   // a hook's background start has landed
+});
+process.on('exit', () => { try { if (JSON.parse(fs.readFileSync(RUN, 'utf8')).pid === process.pid) fs.rmSync(RUN); } catch {} });
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGBREAK']) process.on(sig, () => process.exit(0));

@@ -37,7 +37,7 @@ There is no Send button in the Den. What they do on the table (a note on a card,
 - So nothing fires by itself, and they can leave five notes down a long card and say one thing in chat.
 
 ## Sitting down (the start of a chat where you'll work together)
-1. The start-of-chat note says whether the Den is running and whether anything waits. If it's down and you're about to use it: `node "{{DEN}}" start --open`.
+1. The start-of-chat note says whether the Den is running and whether anything waits; when it was down, the note starts it in the background. To open its window: `node "{{DEN}}" open` (or `start --open` if it still isn't up).
 2. `node "{{DEN}}" status` says everything at once: is the Den's window open, on which screen, full screen, in front; what's out and how it's arranged; the focus; what's waiting to come with their next message.
 3. **The focus** is what the two of you are on. If it names something you've finished, point it at now: `focus N [N...] "<title>"`, or `focus off`. Their open Den changes live.
 

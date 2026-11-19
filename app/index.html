@@ -17,6 +17,9 @@
 </script>
 <meta charset="utf-8">
 <title>The Den</title>
+<script>/* Which Den this window is: its port at the end of its title, in characters nobody sees (a word joiner, then the port in binary as
+   zero-width spaces and non-joiners). Two Dens can be open at once, both "The Den"; tile.ps1 reads this so window commands move only this one. */
+document.title = 'The Den\u2060' + Number(location.port || 80).toString(2).replace(/0/g, '\u200b').replace(/1/g, '\u200c');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="face.png">
 <style>

@@ -15,6 +15,7 @@
 //   pickup                    what they put on the table since you last heard (a hook runs it on each message they write)
 //   bring <other Den folder>  copy another Den's cards into this one; the other is never changed
 //   unhook                    take this Den's lines out of the Claude settings (going back)
+//   upgrade                   after git pull in an older Den's folder: hands over what the old Den left, then hook, restart, doctor
 //
 // THE WORK AREA: what's out, in order. One fills it, two sit side by side, a third sits under them, four make a grid.
 //   node tools/den.js bench                                      what's out right now, and what waits on me
@@ -48,10 +49,10 @@
 //                                                                every save is a step, and the card changes in place on their screen, glowing where I touched it
 //   node tools/den.js edit N "old" "new" ["what changed"] [--all]    the same, by find-and-replace (--old-file / --new-file for long text)
 //   node tools/den.js undo N                                     back one step (they have ↶ ↷ on the card too)
-//   node tools/den.js options "<title>" a.html b.html [c.html d.html] [--names "Quiet|Warm"] [--w 1920] [--note ..]
+//   node tools/den.js options "<title>" a.html b.html [c.html d.html] [--names "Quiet|Warm"] [--w 1920] [--note ..] [--layout ..]
 //                                                                options, each its own card, all put out as separate windows on their Den
 //
-//                                                                What was already out stays beside them, up to four. They arrange the windows himself.
+//                                                                What was already out stays beside them, up to four, in an even grid unless --layout says otherwise.
 //   node tools/den.js say N "text" | --file <f>                   a note of mine on the card (its notes drop down from the tab)
 //   node tools/den.js about N "what this is"                      the line on top of its notes that catches either of us up; put ... --about "..." sets it as the card lands
 //   node tools/den.js point N ["note"]                           circle card N on their real screen with the glass
@@ -69,10 +70,13 @@ import { spawn } from 'node:child_process';
 let PORT = 7950, CONF_BROKEN = null; const CONF_FILE = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:')), '..', 'config.json');
 try { if (fs.existsSync(CONF_FILE)) PORT = JSON.parse(fs.readFileSync(CONF_FILE, 'utf8')).port || PORT; } catch (e) { CONF_BROKEN = e.message; }
 const BASE = process.env.DEN_URL || 'http://127.0.0.1:' + PORT;
+// Who made a card or a version, in what an AI reads: the names its config gives.
+const NAMES = (() => { try { const c = JSON.parse(fs.readFileSync(CONF_FILE, 'utf8')); return { odie: c.ai || 'the AI', hunter: c.person || 'the person' }; } catch { return { odie: 'the AI', hunter: 'the person' }; } })();
+const nm = b => NAMES[b] || b;
 const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:'));
 const args = process.argv.slice(2);
 const cmd = args.shift();
-const ADMIN = ['start', 'stop', 'restart', 'doctor', 'link', 'open', 'hello', 'line', 'hook', 'unhook', 'pickup', 'bring'];
+const ADMIN = ['start', 'stop', 'restart', 'doctor', 'link', 'open', 'hello', 'line', 'hook', 'unhook', 'pickup', 'bring', 'upgrade'];
 const QUIET_HOOK = cmd === 'pickup' && args.includes('--hook');
 const flag = (name, takes = true) => { const i = args.indexOf(name); if (i < 0) return null; const v = takes ? args[i + 1] : true; args.splice(i, takes ? 2 : 1); return v; };
 const readArg = v => (v === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(v, 'utf8'));
@@ -131,8 +135,12 @@ async function fileOf(id, tmp) {
   throw new Error(`#${id} is a ${c.kind}; it has no picture to go from`);
 }
 // ---- windows: where the Den's window is, and bringing it forward. tile.ps1 and show.ps1 do the moving. ----
-const tile = async t => (await run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(here, 'tile.ps1'), ...t])).o.trim();
-async function denScreen() { const l = (await tile(['-List'])).split(/\r?\n/).find(x => / The Den\s*$/.test(x)); const m = l && /^(main|second)\b/.exec(l); return m ? m[1] : null; }
+// Two Dens can be open at once, both titled "The Den". The page ends its title with its port, in characters nobody sees,
+// and tile.ps1 reads it, so these find this Den's window and never move another one's (from a cold test).
+const DEN_PORT = String(new URL(BASE).port || 80), DEN_TAG = `The Den (port ${DEN_PORT})`;
+const tile = async t => (await run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(here, 'tile.ps1'), ...t, '-Den', DEN_PORT])).o.trim();
+const denWindows = async () => (await tile(['-List'])).split(/\r?\n/).filter(x => x.trimEnd().endsWith(DEN_TAG));
+async function denScreen() { const l = (await denWindows())[0]; const m = l && /^(main|second)\b/.exec(l); return m ? m[1] : null; }
 // Forward and full screen on the screen it's already on. Not open yet: on the screen our chat isn't on.
 async function denFront() {
   let scr = await denScreen();
@@ -141,6 +149,10 @@ async function denFront() {
   const o = await tile(['-Screen', (await denScreen()) || scr, '-Shape', 'full', '-Titles', 'The Den']);
   return o || `the Den is in front, full screen, on their ${scr} screen`;
 }
+
+// --layout main 65 | row 50 25 25 | grid [40] | reset, taken off the arguments; and the body the server wants for it.
+function takeLayout() { const li = args.indexOf('--layout'); if (li < 0) return null; let k = li + 2; while (k < args.length && /^\d+$/.test(args[k])) k++; const part = args.splice(li, k - li); return { shape: part[1], nums: part.slice(2).map(Number) }; }
+const layoutBody = lay => lay.shape === 'reset' ? null : lay.shape === 'row' ? { shape: 'row', cols: lay.nums.length > 1 ? lay.nums : null } : { shape: lay.shape, split: lay.nums[0], rsplit: lay.nums[1] };
 
 async function benchLine() {
   const d = await api(''); const name = i => { const c = d.cards.find(x => x.id === i); return `#${i} ${c ? c.kind + ' "' + c.title + '"' : ''}`; };
@@ -158,16 +170,16 @@ async function look(id) {
     const h = d.hand || {};
     const out = [`The table (${d.cards.length} card${d.cards.length === 1 ? '' : 's'})${h.odie ? ` · I'm holding #${h.odie}` : ''}${h.pinned ? ` · they pinned #${h.pinned}` : ''}${h.compare ? ` · comparing ${h.compare.map(x => '#' + x).join(' and ')}` : ''}`];
     if (d.presence) out.push(`My line: "${d.presence.doing}" (${d.presence.at})`);
-    for (const c of d.cards) out.push(`- #${c.id} ${c.kind} "${c.title}"${c.versions > 1 ? ` v${c.v}/${c.versions}` : ''} · ${c.marks} mark${c.marks === 1 ? '' : 's'}${c.open ? ` (${c.open} of their unanswered)` : ''}${!c.touched && c.by === 'hunter' ? ' · NEW, untouched by me' : ''}${c.state !== 'open' ? ` · ${c.state}` : ''} · by ${c.by} · ${c.updated}${c.from ? ` · from ${c.from.app}${c.from.title ? ' "' + c.from.title + '"' : ''}` : ''}${c.excerpt ? `\n    "${c.excerpt.replace(/\s+/g, ' ').slice(0, 160)}"` : ''}`);
+    for (const c of d.cards) out.push(`- #${c.id} ${c.kind} "${c.title}"${c.versions > 1 ? ` v${c.v}/${c.versions}` : ''} · ${c.marks} mark${c.marks === 1 ? '' : 's'}${c.open ? ` (${c.open} of their unanswered)` : ''}${!c.touched && c.by === 'hunter' ? ' · NEW, untouched by me' : ''}${c.state !== 'open' ? ` · ${c.state}` : ''} · by ${nm(c.by)} · ${c.updated}${c.from ? ` · from ${c.from.app}${c.from.title ? ' "' + c.from.title + '"' : ''}` : ''}${c.excerpt ? `\n    "${c.excerpt.replace(/\s+/g, ' ').slice(0, 160)}"` : ''}`);
     if (!d.cards.length) out.push('- nothing yet');
     return out.join('\n');
   }
   const c = await api('/cards/' + id);
   const dir = path.join((await api('')).dir, 'table', String(c.id));
-  const L = [`# #${c.id} ${c.title}`, `${c.kind} · by ${c.by} · ${c.state} · updated ${c.updated}${c.home ? ` · home: ${c.home}` : ''}${c.with ? ` · with #${c.with}` : ''}`, ''];
+  const L = [`# #${c.id} ${c.title}`, `${c.kind} · by ${nm(c.by)} · ${c.state} · updated ${c.updated}${c.home ? ` · home: ${c.home}` : ''}${c.with ? ` · with #${c.with}` : ''}`, ''];
   if (c.kind === 'mock' || c.kind === 'text') L.push(`working copy: ${path.join(dir, c.kind === 'mock' ? 'work.html' : 'work.md')} (edit it and the card changes in place)`);
-  if (c.kind === 'mock') L.push(`versions: ${c.versions.map(x => `v${x.v}${x.v === c.v ? ' (showing)' : ''} by ${x.by}${x.note ? ` "${x.note}"` : ''}`).join(', ')}`, `width ${c.w}px · page: ${path.join(dir, `v${c.v}.html`)} · a screenshot: GET ${BASE}/api/den/cards/${c.id}/shot`, '');
-  if (c.kind === 'text') { L.push(`versions: ${c.versions.map(x => `v${x.v}${x.v === c.v ? ' (showing)' : ''} by ${x.by}${x.note ? ` "${x.note}"` : ''}`).join(', ')}`, '', '## The words', c.body, ''); }
+  if (c.kind === 'mock') L.push(`versions: ${c.versions.map(x => `v${x.v}${x.v === c.v ? ' (showing)' : ''} by ${nm(x.by)}${x.note ? ` "${x.note}"` : ''}`).join(', ')}`, `width ${c.w}px · page: ${path.join(dir, `v${c.v}.html`)} · a screenshot: GET ${BASE}/api/den/cards/${c.id}/shot`, '');
+  if (c.kind === 'text') { L.push(`versions: ${c.versions.map(x => `v${x.v}${x.v === c.v ? ' (showing)' : ''} by ${nm(x.by)}${x.note ? ` "${x.note}"` : ''}`).join(', ')}`, '', '## The words', c.body, ''); }
   if (c.kind === 'drop' || c.kind === 'picture') { L.push(`## The picture`, c.file ? `file: ${path.join(dir, c.file.path)} (Read it)` : '(no picture)', c.from ? `from: ${c.from.app}${c.from.title ? ` · "${c.from.title}"` : ''}${c.from.url ? ` · ${c.from.url}` : ''}` : '', ''); if (c.note) L.push('## Their words', c.note, ''); if (c.words) L.push('## The words in it', c.words, ''); }
   if (c.kind === 'page') L.push(`## The page`, c.url, c.captured ? `capture: ${path.join(dir, 'page.png')} (Read it) · ${c.w}×${c.h}` : (c.captureError ? `the capture failed: ${c.captureError} (try again: den.js capture ${c.id})` : 'not captured yet (it finishes a few seconds after put page)'), c.words ? `\n## The words on it\n${c.words.slice(0, 6000)}` : '', '');
   if (c.kind === 'voice') L.push('## The words they said', c.body || '(none yet)', `audio: ${BASE}/api/dumps/${c.dump}/audio · ${c.seconds || '?'} s`, '');
@@ -277,19 +289,21 @@ async function main() {
     case 'edit': { const id = Number(a[0]); const all = flag('--all', false), of = flag('--old-file'), nf = flag('--new-file'); const old = of ? readArg(of) : a[1], neu = nf ? readArg(nf) : a[of ? 1 : 2], note = a[(of ? 1 : 2) + (nf ? 0 : 1)]; const c = await api(`/cards/${id}/edit`, { method: 'POST', body: { old, new: neu, all: !!all, note, by: 'odie' } }); console.log(`#${id} changed in place (step ${c.v} of ${c.versions.length})`); break; }
     case 'undo': { const c = await api('/cards/' + a[0]); const i = c.versions.findIndex(x => x.v === c.v); if (i < 1) { console.log(`#${c.id} is at its first version`); break; } await api(`/cards/${c.id}/version`, { method: 'PATCH', body: { v: c.versions[i - 1].v, by: 'odie' } }); console.log(`#${c.id} back to step ${i} of ${c.versions.length}`); break; }
     case 'options': case 'ways': {
-      const names = (flag('--names') || '').split('|'), w = flag('--w'), note = flag('--note');
+      const names = (flag('--names') || '').split('|'), w = flag('--w'), note = flag('--note'), lay = takeLayout();
       if (a[1] === 'off' || /^\d+$/.test(a[0] || '')) { console.log('ways are gone: options are separate cards now. den.js options "<title>" a.html b.html'); process.exitCode = 1; break; }
       const title = String(a[0] || '').replace(/^new:?/, '').trim(), files = a.slice(1);
-      if (!title || files.length < 1) { console.log('usage: den.js options "<title>" a.html b.html [c.html d.html] [--names "A|B"] [--w 1920]'); process.exitCode = 1; break; }
+      if (!title || files.length < 1) { console.log('usage: den.js options "<title>" a.html b.html [c.html d.html] [--names "A|B"] [--w 1920] [--layout main 60 | row | grid]'); process.exitCode = 1; break; }
       const made = [];
       for (const [i, file] of files.slice(0, 4).entries()) { const nm = (names[i] || '').trim() || path.basename(file).replace(/\.html?$/, ''); const c = await put('mock', [`${title}: ${nm}`, file], { w, note }); made.push(c); }
       const was = (await api('')).bench.filter(x => !made.some(c => c.id === x));
       await api('/bench', { method: 'POST', body: { items: [...made.map(c => c.id), ...was].slice(0, 4), by: 'odie' } });
+      // Options sit even, whatever was arranged before (an earlier "main" made the first one look chosen); --layout picks another.
+      await api('/bench/layout', { method: 'POST', body: { layout: lay ? layoutBody(lay) : null, by: 'odie' } });
       console.log(made.map(c => `#${c.id} "${c.title}"`).join(' · ') + ' are out as their own windows');
       console.log(await benchLine()); break; }
     case 'pick': console.log('pick is gone with ways: they tell me which window, and I carry on from that card'); process.exitCode = 1; break;
     case 'status': {
-      const wins = (await tile(['-List'])).split(/\r?\n/).filter(l => / The Den\s*$/.test(l));
+      const wins = await denWindows();
       const st = await api('/ask-page', { method: 'POST', body: { ask: 'state' } });
       console.log(!wins.length ? 'The Den window: not open (den.js front opens it)' : 'The Den window: ' + wins.map(l => { const m = /^(\S+)\s+(full screen|windowed)/.exec(l); return m ? `on their ${m[1]} screen, ${m[2]}` : l.trim(); }).join(' · ') + (st.ok ? (st.front ? ', in front and focused' : ', showing') + (st.big ? `, card #${st.big} full screen` : '') : ', but behind another window or not answering'));
       console.log(await benchLine());
@@ -297,8 +311,8 @@ async function main() {
       console.log(f ? `Focus: "${f.title}" (${(f.cards || []).map(i => '#' + i).join(' ')})` : 'Focus: none, the list shows the whole table');
       const d1 = await api(''); console.log(d1.outbox.did.length ? `Waiting for their next send: ${d1.outbox.did.map(x => '#' + x.card).join(', ')}` : 'Waiting for their next send: nothing'); break; }
     case 'show': {
-      let lay = null; const li = args.indexOf('--layout');
-      if (li >= 0) { let k = li + 2; while (k < args.length && /^\d+$/.test(args[k])) k++; const part = args.splice(li, k - li); lay = { shape: part[1], nums: part.slice(2).map(Number) }; }
+      const lay = takeLayout();
+
       const fo = flag('--focus'), front = flag('--front', false), only = flag('--only', false);
       const ids = args.filter(x => /^\d+$/.test(x)).map(Number).slice(0, 4);
       if (!ids.length) { console.log('usage: den.js show A [B C D] [--layout main 65 | row 50 25 25 | grid] [--focus "<title>"] [--front] [--only]  (adds beside what is out; --only puts out exactly these)'); break; }
@@ -307,7 +321,7 @@ async function main() {
       const items = [...ids, ...was].slice(0, 4), off = was.filter(x => !items.includes(x));
       await api('/bench', { method: 'POST', body: { items, by: 'odie' } });
       if (off.length) console.log('room for four, so these came off the work area (still on the tabs and the table): ' + off.map(i => '#' + i).join(' '));
-      if (lay) await api('/bench/layout', { method: 'POST', body: { layout: lay.shape === 'reset' ? null : lay.shape === 'row' ? { shape: 'row', cols: lay.nums.length > 1 ? lay.nums : null } : { shape: lay.shape, split: lay.nums[0], rsplit: lay.nums[1] }, by: 'odie' } });
+      if (lay) await api('/bench/layout', { method: 'POST', body: { layout: layoutBody(lay), by: 'odie' } });
       if (fo) { const body = JSON.stringify({ title: fo, what: fo, cards: ids }) + '\n'; { fs.mkdirSync(path.join(here, '..', 'data'), { recursive: true }); fs.writeFileSync(path.join(here, '..', 'data', 'focus.json'), body); } }
       if (front) console.log(await denFront());
       console.log(await benchLine()); break; }
@@ -353,7 +367,7 @@ async function main() {
     case 'about': { const id = Number(a[0]); if (!id) { console.log('usage: den.js about N "what this is, where it stands, where it lives"  ·  den.js about N off'); break; } await api(`/cards/${id}`, { method: 'PATCH', body: { about: a[1] === 'off' ? '' : a[1], by: 'odie' } }); console.log(a[1] === 'off' ? `#${id} has no "what this is" line` : `#${id} says what it is`); break; }
     case 'unsay': { const id = Number(a[0]), n = Number(a[1]); if (!id || !n) { console.log('usage: den.js unsay N <note number from look>   (takes off a note of mine)'); break; } await api(`/cards/${id}/says/${n}?by=odie`, { method: 'DELETE' }); console.log(`note ${n} is off #${id}`); break; }
     case 'point': await point(Number(a[0]), a[1]); break;
-    case 'settle': await api(`/cards/${a[0]}`, { method: 'PATCH', body: { state: 'settled', why: a[1], by: 'odie' } }); console.log(`#${a[0]} settled`); break;
+    case 'settle': await api(`/cards/${a[0]}`, { method: 'PATCH', body: { state: 'settled', why: a[1], by: 'odie' } }); console.log(`#${a[0]} settled, and off the work area`); break;
     case 'retire': await api(`/cards/${a[0]}`, { method: 'PATCH', body: { state: 'retired', by: 'odie' } }); console.log(`#${a[0]} put away`); break;
     case 'reopen': await api(`/cards/${a[0]}`, { method: 'PATCH', body: { state: 'open', by: 'odie' } }); console.log(`#${a[0]} open again`); break;
     case 'title': await api(`/cards/${a[0]}`, { method: 'PATCH', body: { title: a[1], by: 'odie' } }); console.log(`#${a[0]} is now "${a[1]}"`); break;
