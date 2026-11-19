@@ -37,10 +37,10 @@
 //   node tools/den.js focus N [N...] "<title>"  ·  focus off       what we are on: the tabs across the top show only these cards
 //
 //   node tools/den.js reveal N "<words>"                         scroll card N to those words and light them, no box (mark does both)
-//   node tools/den.js look [N]                                   the table, or one card whole (marks in words, their asks, files to Read)
+//   node tools/den.js look [N]                                   the table, or one card whole (marks in words, notes, files to Read)
 //   node tools/den.js news [--peek]                              what they did since I last looked
-//   node tools/den.js put mock "<title>" <file.html> [--w 1280] [--note "<why>"] [--home <path>] [--with N]
-//   node tools/den.js put words "<title>" <file.md|-> [--note ..] [--home <path>]
+//   node tools/den.js put mock "<title>" <file.html> [--w 1280] [--about "<what it is>"] [--home <path>] [--with N]
+//   node tools/den.js put words "<title>" <file.md|-> [--about ..] [--home <path>]
 //   node tools/den.js put picture "<title>" <file>  ·  put file <file>  ·  put chart "<title>" <file.json>
 //   node tools/den.js put page <url> [--w 1280] ["title"]        capture a web page onto the table (then its words are readable)
 //   node tools/den.js put voice <dumpId>                         a voice dump: their audio and its words
@@ -50,10 +50,10 @@
 //   node tools/den.js edit N "old" "new" ["what changed"] [--all]    the same, by find-and-replace (--old-file / --new-file for long text)
 //   node tools/den.js undo N                                     back one step (they have ↶ ↷ on the card too)
 //   node tools/den.js options "<title>" a.html b.html [c.html d.html] [--names "Quiet|Warm"] [--w 1920] [--note ..] [--layout ..]
-//                                                                options, each its own card, all put out as separate windows on their Den
-//
+//                                                                options, each its own card, all put out as separate windows on their Den.
 //                                                                What was already out stays beside them, up to four, in an even grid unless --layout says otherwise.
 //   node tools/den.js say N "text" | --file <f>                   a note of mine on the card (its notes drop down from the tab)
+//   node tools/den.js unsay N <number>                            take one of my notes off (numbers from look N)
 //   node tools/den.js about N "what this is"                      the line on top of its notes that catches either of us up; put ... --about "..." sets it as the card lands
 //   node tools/den.js point N ["note"]                           circle card N on their real screen with the glass
 //   node tools/den.js settle N ["why"] · retire N · reopen N · title N "<t>" · home N <path> · keep N [<path>]
