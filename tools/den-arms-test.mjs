@@ -67,7 +67,7 @@ try {
   r = run('move', String(M), 'first'); ok('move reorders', (await get('/')).bench[0] === M, r.out);
   r = run('bench', 'off', String(M)); ok('bench off', !(await get('/')).bench.includes(M), r.out);
   r = run('focus', String(A), 'Only the scratch card'); ok('focus names what we are on', JSON.parse(fs.readFileSync(focusFiles[0], 'utf8')).cards.join() === String(A), r.out);
-  r = run('status'); ok('status says it all in one go', /The Den window:/.test(r.out) && /Out in the work area/.test(r.out) && /Focus: "Only the scratch card"/.test(r.out) && /Waiting for their next send/.test(r.out), r.out);
+  r = run('status'); ok('status says it all in one go', /The Den window:/.test(r.out) && /Out in the work area/.test(r.out) && /Focus: "Only the scratch card"/.test(r.out) && /Waiting for their next message/.test(r.out), r.out);
   r = run('bench'); ok('bench says what is out', /Out in the work area/.test(r.out), r.out);
   r = run('asks'); ok('asks says it is gone', r.code !== 0 && /gone/.test(r.out), r.out);
   r = run('news', '--peek'); ok('news answers', r.code === 0, r.out);

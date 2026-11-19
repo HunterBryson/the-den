@@ -129,6 +129,17 @@ server.requestTimeout = 0; // den.js wait holds a request open for minutes
 // Where this copy is running, kept in its own folder: den.js finds the running Den by its folder through this file,
 // so changing "port" in config.json and restarting stops the old one instead of leaving two.
 const RUN = path.join(DATA, 'den.run.json');
+// One Den per folder: when this folder's Den is already running (on the port it had before config.json changed), a second one doesn't start beside it.
+try {
+  const was = JSON.parse(fs.readFileSync(RUN, 'utf8'));
+  if (was.port !== cfg.port) {
+    const h = await fetch(`http://127.0.0.1:${was.port}/api/health`, { signal: AbortSignal.timeout(1500) }).then(r => r.json()).catch(() => null);
+    if (h?.den && path.resolve(h.folder).toLowerCase() === path.resolve(HERE).toLowerCase()) {
+      log('not started: this Den already runs on', was.port);
+      console.error(`This Den is already running on port ${was.port}. To move it to ${cfg.port}: node tools/den.js restart`); process.exit(1);
+    }
+  }
+} catch {}
 server.listen(cfg.port, '127.0.0.1', () => {
   log('started on', cfg.port, 'from', HERE); console.log(`The Den is at http://127.0.0.1:${cfg.port}/`);
   try { fs.writeFileSync(RUN, JSON.stringify({ pid: process.pid, port: cfg.port, folder: HERE, started: new Date().toISOString() }) + '\n'); } catch {}

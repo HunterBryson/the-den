@@ -83,9 +83,9 @@ Every card has notes that drop down from its tab: on top, what the card is; unde
 - Nothing you do on the table needs them to open a file or a terminal. If something's off, `doctor` names it and the fix. You fix it.
 
 ## Changing the Den itself
-Your copy is yours to change. Two tests keep your hands working while you do:
+Your copy is yours to change. Two tests keep your hands working while you do (run each with the real node by its full path, like every command here):
 - `node "<the Den folder>/tools/den-arms-test.mjs"` tries every command on scratch cards and cleans up.
-- `node "<the Den folder>/tools/den-drive.mjs" "<the Den folder>/tools/den-walk.mjs"` clicks and drags the page as your person, in a hidden browser. It needs three words cards on the table.
+- `node "<the Den folder>/tools/den-drive.mjs" "<the Den folder>/tools/den-walk.mjs"` clicks and drags the page as your person, in a hidden browser. On a table with fewer than three words cards it makes scratch ones and takes them off after.
 A change to the page, the server or `den.js` isn't done until both pass. The page's section marked ARMS, the server's `ask-page`, and `den.js` are what let you work here: keep them through any new look.
 
 ## Pull your "the Den" block

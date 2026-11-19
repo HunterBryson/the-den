@@ -10,7 +10,9 @@ export default async d => {
   let fails = 0; const ok = (name, pass, more = '') => { if (!pass) fails++; console.log((pass ? 'PASS ' : 'FAIL ') + name + (more ? '  [' + more + ']' : '')); };
   const before = await state();
   const open = before.cards.filter(c => c.state !== 'retired'), words = open.filter(c => c.kind === 'text').slice(0, 3).map(c => c.id);
-  if (words.length < 3) { console.log('needs three words cards on the table'); return; }
+  // It walks three words cards. A table with fewer gets scratch ones, taken off again at the end.
+  const made = [];
+  for (let i = words.length; i < 3; i++) { const r = await post('/cards', { kind: 'text', title: 'Walk test (scratch) ' + (i + 1), body: '# Walk test (scratch)\n\nA scratch card for the walk.\n', by: 'odie' }).then(x => x.json()); if (!r.id) { console.log('the walk could not make its scratch cards: ' + JSON.stringify(r)); process.exitCode = 1; return; } made.push(r.id); words.push(r.id); }
   const [a, b, c] = words;
   const widths = () => d.eval('[...document.querySelectorAll("#work .item")].map(e => Math.round(e.getBoundingClientRect().width)).join(" / ")');
   const count = sel => d.eval(`document.querySelectorAll(${JSON.stringify(sel)}).length`);
@@ -84,6 +86,7 @@ export default async d => {
     await d.page(PAGE + '?ask=pictures'); await d.wait(700); ok('an old ?ask= link just opens the Den', (await count('#askbox')) === 0 && (await count('#work')) === 1);
     ok('no errors on the page', (await d.errors()).length === 0, (await d.errors()).join('; '));
   } finally {
+    for (const id of made) await fetch(B + '/cards/' + id, { method: 'DELETE' }).catch(() => {});
     await post('/bench', { items: before.bench, by: 'odie' }); await post('/bench/layout', { layout: before.layout || { shape: 'reset' }, by: 'odie' });
   }
   console.log(fails ? `${fails} FAILED` : 'all passed'); if (fails) process.exitCode = 1;

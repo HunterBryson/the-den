@@ -34,7 +34,7 @@
 //   node tools/den.js change N <file.png> ["what changed"]       a changed picture: the next version of the same card (pictures step back and forward like mock-ups)
 //   node tools/den.js working "<what>" [--card N]  ·  working off <id>     show them a job I'm in the middle of
 //   node tools/den.js yours N "<what I need from you>"  ·  yours N off     mark a card as waiting on them (counts in "Waiting on you")
-//   node tools/den.js focus N [N...] "<title>"  ·  focus off       what we are on: the left list shows only these cards
+//   node tools/den.js focus N [N...] "<title>"  ·  focus off       what we are on: the tabs across the top show only these cards
 //
 //   node tools/den.js reveal N "<words>"                         scroll card N to those words and light them, no box (mark does both)
 //   node tools/den.js look [N]                                   the table, or one card whole (marks in words, their asks, files to Read)
@@ -57,8 +57,7 @@
 //   node tools/den.js about N "what this is"                      the line on top of its notes that catches either of us up; put ... --about "..." sets it as the card lands
 //   node tools/den.js point N ["note"]                           circle card N on their real screen with the glass
 //   node tools/den.js settle N ["why"] · retire N · reopen N · title N "<t>" · home N <path> · keep N [<path>]
-//   node tools/den.js remove N                                   off the table (kept under data/den/removed)
-//   node tools/den.js wait [--min 20]                            block until they ask, mark or drop, then print it (run in the background)
+//   node tools/den.js remove N                                   off the table (kept under data/removed)
 //
 // If the Den is down it says so, and a failure exits 1.
 import fs from 'node:fs';
@@ -70,6 +69,9 @@ import { spawn } from 'node:child_process';
 let PORT = 7950, CONF_BROKEN = null; const CONF_FILE = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([a-z]):/i, '$1:')), '..', 'config.json');
 try { if (fs.existsSync(CONF_FILE)) PORT = JSON.parse(fs.readFileSync(CONF_FILE, 'utf8')).port || PORT; } catch (e) { CONF_BROKEN = e.message; }
 const BASE = process.env.DEN_URL || 'http://127.0.0.1:' + PORT;
+// Messages name the real node and this den.js by their full paths, so a line the AI copies runs the right node on any PC.
+const ME = `"${process.execPath.split(path.sep).join('/')}" "${path.join(path.dirname(CONF_FILE), 'tools', 'den.js').split(path.sep).join('/')}"`;
+{ const log = console.log; console.log = (...a) => log(...a.map(x => typeof x === 'string' ? x.split('node tools/den.js').join(ME) : x)); }
 // Who made a card or a version, in what an AI reads: the names its config gives.
 const NAMES = (() => { try { const c = JSON.parse(fs.readFileSync(CONF_FILE, 'utf8')); return { odie: c.ai || 'the AI', hunter: c.person || 'the person' }; } catch { return { odie: 'the AI', hunter: 'the person' }; } })();
 const nm = b => NAMES[b] || b;
@@ -160,7 +162,7 @@ async function benchLine() {
   const L = [n ? `Out in the work area (${how}): ${d.bench.map(name).join(' · ')}` : 'The work area is empty.'];
   const w = d.cards.filter(c => c.waiting && c.state !== 'retired'); if (w.length) L.push('Waiting on them: ' + w.map(c => `#${c.id} (${c.waiting})`).join(' · '));
   if (d.jobs.length) L.push('I\'m shown working on: ' + d.jobs.map(j => `[${j.id}] ${j.what}`).join(' · '));
-  if (d.outbox.did.length) L.push(`They put ${d.outbox.did.length} thing(s) on the table that reach me on their next send (not mine to read until then).`);
+  if (d.outbox.did.length) L.push(`They put ${d.outbox.did.length} thing(s) on the table that reach me on their next message (not mine to read until then).`);
   return L.join('\n');
 }
 
@@ -226,6 +228,7 @@ async function main() {
   if (ADMIN.includes(cmd)) return (await import('./admin.mjs')).run(cmd, args, { BASE, here });
   // Only ever work on this folder's Den: another copy on the same port is not ours to change (cold test 1).
   if (cmd) { const h = await fetch(BASE + '/api/health', { signal: AbortSignal.timeout(2500) }).then(r => r.json()).catch(() => null);
+    if (!h) { const r = await (await import('./admin.mjs')).running(BASE); if (r) { console.log(`This Den is running on port ${r.port}, but config.json says ${PORT}. Move it there: node tools/den.js restart`); process.exitCode = 1; return; } }
     if (!h && cmd === 'see') { console.log('The Den is not running. Start it: node tools/den.js start'); process.exitCode = 1; return; }
     if (h?.den && path.resolve(h.folder).toLowerCase() !== path.resolve(here, '..').toLowerCase()) { console.log(`The Den on ${BASE} is another copy (${h.folder}), not this one. Stop that one, or give this one its own "port" in config.json.`); process.exitCode = 1; return; } }
   const a = args;
@@ -308,8 +311,8 @@ async function main() {
       console.log(!wins.length ? 'The Den window: not open (den.js front opens it)' : 'The Den window: ' + wins.map(l => { const m = /^(\S+)\s+(full screen|windowed)/.exec(l); return m ? `on their ${m[1]} screen, ${m[2]}` : l.trim(); }).join(' · ') + (st.ok ? (st.front ? ', in front and focused' : ', showing') + (st.big ? `, card #${st.big} full screen` : '') : ', but behind another window or not answering'));
       console.log(await benchLine());
       let f = null; try { f = JSON.parse(fs.readFileSync(path.join(here, '..', 'data', 'focus.json'), 'utf8')); } catch {}
-      console.log(f ? `Focus: "${f.title}" (${(f.cards || []).map(i => '#' + i).join(' ')})` : 'Focus: none, the list shows the whole table');
-      const d1 = await api(''); console.log(d1.outbox.did.length ? `Waiting for their next send: ${d1.outbox.did.map(x => '#' + x.card).join(', ')}` : 'Waiting for their next send: nothing'); break; }
+      console.log(f ? `Focus: "${f.title}" (${(f.cards || []).map(i => '#' + i).join(' ')})` : 'Focus: none, the tabs show the whole table');
+      const d1 = await api(''); console.log(d1.outbox.did.length ? `Waiting for their next message: ${d1.outbox.did.map(x => '#' + x.card).join(', ')}` : 'Waiting for their next message: nothing'); break; }
     case 'show': {
       const lay = takeLayout();
 
@@ -355,10 +358,10 @@ async function main() {
       if (!['grid', 'row', 'main', 'reset'].includes(shape)) { console.log('usage: den.js layout grid [left% [top%]] | row [a b c d] | main [left%] | reset'); break; }
       const l = shape === 'reset' ? null : shape === 'row' ? { shape, cols: nums.length > 1 ? nums : null } : { shape, split: nums[0], rsplit: nums[1] };
       console.log(tell((await api('/bench/layout', { method: 'POST', body: { layout: l, by: 'odie' } })).layout)); break; }
-    case 'focus': {   // what we are on: the left list shows only these. `focus off` clears it.
+    case 'focus': {   // what we are on: the tabs show only these. `focus off` clears it.
       const fp = path, ffs = fs; ffs.mkdirSync(fp.join(here, '..', 'data'), { recursive: true });
       const files = [fp.join(here, '..', 'data', 'focus.json')];
-      if (a[0] === 'off') { for (const f of files) { try { ffs.unlinkSync(f); } catch {} } console.log('focus off: the list shows the whole table'); break; }
+      if (a[0] === 'off') { for (const f of files) { try { ffs.unlinkSync(f); } catch {} } console.log('focus off: the tabs show the whole table'); break; }
       const ids = a.filter(x => /^\d+$/.test(x)).map(Number); const title = a.find(x => !/^\d+$/.test(x)) || 'What we are on';
       if (!ids.length) { console.log('usage: den.js focus N [N...] "<title>"  ·  den.js focus off'); break; }
       const body = JSON.stringify({ title, what: title, cards: ids }) + '\n'; for (const f of files) ffs.writeFileSync(f, body);
@@ -385,7 +388,10 @@ async function main() {
       console.log(r.ask.what === 'send' ? `IN THE DEN, THEY ${line(r.ask)}` : `THEY ${line(r.ask).toUpperCase()}\nLook before answering: node tools/den.js look ${r.ask.card}\nThen start this watch again: node tools/den.js wait --min ${min}`);
       break;
     }
-    default: console.log(fs.readFileSync(new URL(import.meta.url), 'utf8').split('\n').filter(l => l.startsWith('//')).map(l => l.slice(3)).join('\n'));
+    default: { // the help is the comment block at the top, and only that: comments further down are notes on the code
+      const L = fs.readFileSync(new URL(import.meta.url), 'utf8').split(/\r?\n/), out = [];
+      for (const l of L.slice(L[0].startsWith('#!') ? 1 : 0)) { if (!l.startsWith('//')) break; out.push(l.slice(3)); }
+      process.stdout.write(out.join('\n') + '\n'); }
   }
 }
 main().catch(e => { process.exitCode = 1; console.log(/fetch failed|ECONNREFUSED|timeout/i.test(String(e.message)) ? 'The Den is not running. Start it: node tools/den.js start' : `Den: ${e.message}`); });

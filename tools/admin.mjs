@@ -21,7 +21,7 @@ const RUN = path.join(ROOT, 'data', 'den.run.json');
 
 /** This folder's running Den, wherever it is: the port it wrote down when it started, or (a Den from before it wrote one down) the port in config.json.
  *  Only a Den that answers from this folder counts, so another copy is never stopped by mistake. */
-async function running(BASE) {
+export async function running(BASE) {
   let rec = null; try { rec = JSON.parse(fs.readFileSync(RUN, 'utf8')); } catch {}
   for (const base of [rec?.port && `http://127.0.0.1:${rec.port}`, BASE].filter(Boolean)) {
     const h = await health(base); if (h?.den && same(h.folder, ROOT)) return { base, port: Number(new URL(base).port), pid: h.pid };
@@ -40,6 +40,20 @@ function spawnServer(node) {
   const p = spawn(node, [path.join(ROOT, 'server.js')], { cwd: ROOT, detached: true, windowsHide: true, stdio: ['ignore', out, out] });
   p.unref(); fs.closeSync(out); return p;
 }
+/** A folder updated from the classic Den by git pull alone, whose upgrade hasn't run: the classic outbox is still there,
+ *  or their settings run this Den's start-of-chat line but not its message line. */
+function classicLeft() {
+  try { const o = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'outbox.json'), 'utf8')); if (o.waiting || o.sent) return true; } catch {}
+  try {
+    const st = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude', 'settings.json'), 'utf8'));
+    const mine = path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/').toLowerCase();
+    const cmds = Object.values(st.hooks || {}).flat().flatMap(g => g.hooks || []).map(x => String(x.command || '').replace(/\\/g, '/').toLowerCase()).filter(c => c.includes(mine));
+    return cmds.some(c => / hello\b/.test(c)) && !cmds.some(c => / pickup\b/.test(c));
+  } catch { return false; }
+}
+const ME = `"${process.execPath.split(path.sep).join('/')}" "${path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/')}"`;
+const classicTip = () => classicLeft() ? `This Den was updated from the classic one and hasn't been upgraded yet. Run ${ME} upgrade once: it moves what the classic Den left over and sets up the new hooks.` : '';
+
 /** For the hooks: start the Den in the background when it's down, and don't wait for it. A start already under way (in the last 15 s) is left to finish. */
 function startQuietly() {
   const node = realNode(); if (!node || !conf()) return false;
@@ -60,6 +74,7 @@ function realNode() {
 }
 
 function findBrowser() {
+  const own = conf()?.chrome; if (own && fs.existsSync(own)) return own;   // "chrome" in config.json, the same one the server uses
   const pf = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA].filter(Boolean);
   return pf.flatMap(p => [path.join(p, 'Google', 'Chrome', 'Application', 'chrome.exe'), path.join(p, 'Microsoft', 'Edge', 'Application', 'msedge.exe')]).find(p => fs.existsSync(p)) || null;
 }
@@ -78,7 +93,7 @@ export async function run(cmd, args, { BASE }) {
     if (h) return fail(h.den ? `Another Den (from ${h.folder}) is on port ${port}. Stop that one, or give this one another "port" in config.json.` : `Something else is using port ${port}. Give the Den another "port" in config.json.`);
     const node = realNode(); if (!node) return fail(`This isn't plain Node (${process.execPath}). Run den.js with the real node.exe.`);
     const p = spawnServer(node); let died = false; p.on('exit', () => { died = true; });
-    for (let i = 0; i < 40 && !died; i++) { await sleep(250); const h2 = await health(BASE); if (h2?.den && same(h2.folder, ROOT)) { console.log(`The Den is running at ${BASE}/`); if (args.includes('--open')) await run('open', [], { BASE }); return; } }
+    for (let i = 0; i < 40 && !died; i++) { await sleep(250); const h2 = await health(BASE); if (h2?.den && same(h2.folder, ROOT)) { console.log(`The Den is running at ${BASE}/`); if (classicTip() && !args.includes('--from-upgrade')) console.log(classicTip()); if (args.includes('--open')) await run('open', [], { BASE }); return; } }
     return fail(`The Den didn't come up. The end of its log:
 ${tail(6)}`);
   }
@@ -102,6 +117,7 @@ ${tail(6)}`);
     console.log(`Linked the glass at ${c.glass}. Next: den.js hook (it now also turns on the glass's ⤓ Den button).`); return;
   }
   if (cmd === 'hello') { // for a start-of-chat hook: one quiet line, never an error
+    { const tip = classicTip(); if (tip) process.on('exit', () => console.log(tip)); }
     const h = await health(BASE), me = `"${(realNode() || process.execPath).split(path.sep).join('/')}" "${path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/')}"`;
     if (h && !(h.den && same(h.folder, ROOT))) { console.log(`Something else holds the Den's port (${h.den ? 'another Den, from ' + h.folder : 'another program'}). Run ${me} doctor.`); return; }
     // Down: start it in the background and say so in a line. Nothing waits on the start, so a chat opens as fast as ever.
@@ -120,7 +136,7 @@ ${tail(6)}`);
     const quiet = args.includes('--hook'), me = `"${(realNode() || process.execPath).split(path.sep).join('/')}" "${path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/')}"`;
     try {
       const h = await fetch(BASE + '/api/health', { signal: AbortSignal.timeout(quiet ? 1200 : 2500) }).then(r => r.json()).catch(() => null);
-      if (!h && quiet) { startQuietly(); return; }   // down: start it for next time, quietly; nothing can have waited while it was down
+      if (!h && quiet) { if (!(await running(BASE))) startQuietly(); return; }   // down: start it for next time, quietly; nothing can have waited while it was down
       if (!h?.den || !same(h.folder, ROOT)) { if (!quiet) console.log(h ? 'What answers on that port is not this Den.' : `The Den isn't running. Start it: ${me} start`); return; }
       const d = await (await fetch(BASE + '/api/den/', { signal: AbortSignal.timeout(quiet ? 1500 : 4000) })).json();
       const did = d.outbox?.did || [];
@@ -174,6 +190,7 @@ function hook(port) {
     try { s = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { console.log(`${file} doesn't read as JSON (${e.message}), so I left it alone.`); process.exitCode = 1; return; }
     const back = file + '.before-den';
     if (!fs.existsSync(back) && !JSON.stringify(s).includes('den.js')) { fs.copyFileSync(file, back); backedUp = true; }
+    fs.copyFileSync(file, file + '.before-den-hook');   // and every time: their settings from just before this hook
   } else fs.mkdirSync(path.dirname(file), { recursive: true });
   const node = (realNode() || process.execPath).split(path.sep).join('/');
   const tool = path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/');
@@ -189,7 +206,7 @@ function hook(port) {
   fs.writeFileSync(file, JSON.stringify(s, null, 2) + '\n');
   const skilled = installSkill(node, tool);
   const home = homebaseLink(port);
-  console.log(`${skilled}Every new chat now gets a line about the Den, what they put on the table comes in with each message they write${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at ' + (file + '.before-den').split(path.sep).join('/') : ''}.${home ? '\n' + home : ''}`);
+  console.log(`${skilled}Every new chat now gets a line about the Den, what they put on the table comes in with each message they write${conf()?.glass ? `, and the glass knows where the Den is (restart the glass: node tools/glass.js restart in its folder)` : ''}${backedUp ? '. Their settings from before the Den are kept at ' + (file + '.before-den').split(path.sep).join('/') : ''}${fs.existsSync(file + '.before-den-hook') ? '. Their settings from just before this are at ' + (file + '.before-den-hook').split(path.sep).join('/') : ''}.${home ? '\n' + home : ''}`);
 }
 
 /** With "homebase" in config.json: the Den's entry on that Homebase's left side points at this Den's port.
@@ -240,11 +257,21 @@ async function upgrade(BASE, port) {
     const ways = c.ways?.list || [];
     if (ways.length) console.log(`#${n} "${c.title}" has ${ways.length} ways that were never picked; their files are beside the card in ${path.join(tdir, n).split(path.sep).join('/')}. Options are separate cards now (den.js options), if they still matter.`);
   }
-  // 3 · The hook (the new skill and the message hook), then a restart and the doctor.
+  // 3 · A classic den.js wait running in the background for this folder: stopped when its command line names this folder's den.js.
+  //     One started with a relative path can't be told apart from another Den's, so it's named, and left: the new Den tells it nothing, and it ends by itself.
+  const ps = spawnSync('powershell', ['-NoProfile', '-Command', "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | ForEach-Object { [string]$_.ProcessId + [char]9 + $_.CommandLine }"], { encoding: 'utf8', windowsHide: true });
+  const mine = path.join(ROOT, 'tools', 'den.js').split(path.sep).join('/').toLowerCase();
+  for (const l of (ps.stdout || '').split(/\r?\n/)) {
+    const [pid, cl = ''] = l.split('\t'), c = cl.replace(/\\/g, '/').toLowerCase();
+    if (!/den\.js"?\s+wait\b/.test(c) || Number(pid) === process.pid) continue;
+    if (c.includes(mine)) { spawnSync('taskkill', ['/PID', pid, '/F'], { windowsHide: true }); console.log(`Stopped the classic den.js wait that was running in the background (process ${pid}).`); }
+    else console.log(`A den.js wait is running (process ${pid}: ${cl.trim().slice(0, 120)}). If it's this Den's, stop it; if not, leave it. Either way it hears nothing from this Den now and ends on its own.`);
+  }
+  // 4 · The hook (the new skill and the message hook), then a restart and the doctor.
   console.log('\nThe hook:'); hook(port);
-  console.log('\nRestarting:'); await run('restart', [], { BASE });
+  console.log('\nRestarting:'); await run('restart', ['--from-upgrade'], { BASE });
   console.log('\nThe doctor:'); await doctor(BASE, port);
-  console.log(`\nIf a den.js wait was running in the background, stop it: the new Den has nothing for it to wait on.\nGoing back to the classic Den: node tools/den.js unhook, then git checkout classic, node tools/den.js hook and node tools/den.js restart. The cards stay.`);
+  console.log(`\nIf you keep a memory block for the Den, refresh your copy from memory/the-den.md: a classic copy still speaks of Send, asks and ways.\nGoing back to the classic Den: node tools/den.js unhook, then git checkout classic, node tools/den.js hook and node tools/den.js restart. The cards stay.`);
 }
 
 /** Takes this Den's start-of-chat and message lines out of ~/.claude/settings.json (and its GLASS_DEN_URL), leaving every other line. A copy is kept first. */
@@ -286,10 +313,12 @@ async function doctor(BASE, port) {
   say(!!node && major >= 20, `Node ${process.versions.node} at ${process.execPath}`, node ? 'install Node 20 or newer (nodejs.org, the LTS)' : 'run den.js with the real node.exe, not a wrapper');
   if (major > 24) ok.push(`  (Node ${major} is newer than any we've tested; if something odd happens, say which Node it was)`);
   const c = conf();
-  say(!!c, 'config.json reads', 'it is broken: open it and fix the JSON (paths with forward slashes). Deleting it would reset the names and the port.');
+  let why = ''; if (!c) try { JSON.parse(fs.readFileSync(CONFIG, 'utf8')); } catch (e) { why = ` (${e.message})`; }
+  say(!!c, `config.json reads${why}`, 'it is broken: open it and fix the JSON (paths with forward slashes). Deleting it would reset the names and the port.');
   if (!c) { console.log(ok.concat(bad).join('\n') + '\n\nFix config.json first; the other checks need it.'); process.exitCode = 1; return; }
   const h = await health(BASE);
-  if (!h) say(false, `the Den answers on port ${port}`, 'node tools/den.js start');
+  const r0 = h ? null : await running(BASE);
+  if (!h) say(false, `the Den answers on port ${port}`, r0 ? `this Den is running on port ${r0.port}, from before config.json changed: node tools/den.js restart moves it to ${port}` : 'node tools/den.js start');
   else if (!h.den || !same(h.folder, ROOT)) say(false, `port ${port} is this Den`, h.den ? `another Den (${h.folder}) is on it: stop that one, or set another "port" here` : `something else has port ${port}: set another "port" in config.json, then start`);
   else say(true, `the Den is running at ${BASE}/ (from this folder)`);
   const table = path.resolve(ROOT, c?.table || '.', 'table');
@@ -301,7 +330,7 @@ async function doctor(BASE, port) {
   const codex = spawnSync('codex --version', { encoding: 'utf8', shell: true, windowsHide: true });
   const auth = fs.existsSync(path.join(os.homedir(), '.codex', 'auth.json'));
   if (codex.status === 0 && auth) ok.push(`✓ pictures: Codex ${codex.stdout.trim()} is signed in (Make pictures works)`);
-  else ok.push(`· pictures are off: ${codex.status === 0 ? 'Codex is installed but not signed in (codex login, with ChatGPT)' : 'Codex CLI is not installed'}. Everything else works. To turn pictures on: the README's "Pictures" part.`);
+  else ok.push(`· pictures are off: ${codex.status === 0 ? 'Codex is installed but not signed in (codex login, with ChatGPT)' : 'Codex CLI is not installed'}. Everything else works. To turn pictures on: the "Pictures" part of CLAUDE.md.`);
   const g = c?.glass;
   if (!g) ok.push('· no glass linked (optional): node tools/den.js link <glass folder>');
   else {
