@@ -1,12 +1,12 @@
 # The Den
 
-**A table you and your AI share, full screen, where you both look at the same thing.**
+**Start with one real ask. Watch it become something special to you.** A workspace table you and your AI share side by side—for **Claude or Antigravity**—where you both look at the exact same thing.
 
 ![The Den](docs/den.png)
 
-The Den is where Odie and I build things together. Odie puts what it's working on onto the table as cards: pictures, mock-ups of a page before it gets built, words, pages from the web, things I dropped off my screen. Up to four sit out side by side, so we're looking at the same thing at the same time. What we're on sits in tabs across the top, and every card keeps its own notes, so either of us can pick up where we left off. There's no button for talking to Odie. I just say what I want, and anything I left on the table comes along with it.
+Whether you start on Day 1 asking *"help me get on top of my schedule"* or you're in Week 2 juggling separate Work and Personal plans, the Den puts real drafts out on the table instead of burying you in chat walls. Your AI builds interactive views, side-by-side options, weekly timelines, web captures, and drops from your screen. Up to four cards sit out side by side, tabs across the top keep what you're on one click away, and every card holds its own notes so you never have to re-explain where you left off.
 
-The part that makes it work is the AI's side. Your AI gets its own hands in the Den, so it always knows what's on the table and what you're looking at. It can put things out, change them in place while you watch, and put two or three options side by side before it builds anything. Instead of a wall of text in chat, it brings you the thing itself.
+The part that makes it work is the AI's side. Your AI gets its own hands in the Den, so it always knows what's on the table and what you're looking at. It can put things out, change them in place while you watch with glowing live updates, and show two or three options side by side before building the winner.
 
 ## What you can do
 
@@ -24,7 +24,7 @@ The part that makes it work is the AI's side. Your AI gets its own hands in the 
 - **Put two or three options out side by side** before it builds anything, so you pick instead of explaining.
 - **Change a card in place while you watch,** and light up the part it changed. Every change is kept, so either of you can step back.
 - **Keep notes on its own cards,** so the next chat starts already knowing what each one is.
-- **Make pictures** through your ChatGPT (below).
+- **Drop pictures or generate them.** Antigravity generates pictures straight onto cards, and any screenshot or image pastes right onto the table (optional CLI support below).
 - **Tell you when something's your move.** It shows up under Waiting on you.
 
 I got really lazy one time and just wanted Odie to make a heckin' picture. So I just told him what I wanted, and this is what came back:
@@ -35,27 +35,28 @@ Man, he really does look comfy here. I'm glad hes actually gettin a break for a 
 
 ## Pictures
 
-Claude can't make images on its own, so here's what we do to get around it. The Den asks Codex, OpenAI's command-line tool, to make the picture with your own ChatGPT subscription (no API key, nothing billed separately). If you have ChatGPT, your AI can set that up. If you don't, everything else in the Den still works.
+In **Antigravity**, your AI can generate images directly onto any card. If you use **Claude Code** and want image generation from the CLI too, `tools/imagine.mjs` supports an optional local image CLI—and if you don't set one up, everything else in the Den works out of the box with zero extra accounts.
 
+<!-- FOUNDRY:FIT:START -->
 ## It all fits together
 
-Each of my builds works on its own, and they all plug into each other the same way. Start with whichever one you want. When you set up another, your AI fits them together by itself, and the new one shows up where you already look.
+Each build works on its own on **Claude or Antigravity**, and they all plug into each other the same way. Start with whichever one you want. When you set up another, your AI fits them together with `node tools/fit.mjs`, and the new one shows up where you already look.
 
-- **[The glass](https://github.com/HunterBryson/the-glass):** a see-through layer over your screen. You box anything, say a few words, and your AI answers right beside your mark. It's the start of everything else I build, and every one below gets better with it on top.
-- **[Homebase](https://github.com/HunterBryson/the-homebase):** my AI's memory as a web I can see. I box a line of it, say "this is old," and watch it get fixed. Everything else lands on its left side, one click away.
-- **[The Den](https://github.com/HunterBryson/the-den):** a table my AI and I share. Drafts, mock-ups and pictures go on it as cards, and I mark them with the glass. When my AI changes something, it brings the changed part in front of me and boxes it.
-- **[UI Taste](https://github.com/HunterBryson/ui-taste):** when I see a design I like anywhere, I box it and tap ♥ Taste. It goes in my folder, and my AI learns what I mean by "I like this."
-- **[The shelves](https://github.com/HunterBryson/the-shelves):** a memory for your AI to move into. It's what Homebase draws, and the glass brings its own notes for it.
+- **[The shelves](https://github.com/HunterBryson/the-shelves):** a starter memory folder for your AI to move into—what Homebase draws, and what the glass opens when you point at a line.
+- **[The glass](https://github.com/HunterBryson/the-glass):** a see-through layer over your screen. Box anything, say what you want, and your AI answers right beside your mark.
+- **[Homebase](https://github.com/HunterBryson/the-homebase):** your AI's memory as a living web you can read, diff, and flag with one tap. Everything else lands on its left rail, one click away.
+- **[The Den](https://github.com/HunterBryson/the-den):** a workspace table you and your AI share side by side—schedule mocks, live previews, and notes before anything is built.
+<!-- FOUNDRY:FIT:END -->
 
 ## Set it up
 
-Paste this to your Claude, in the Claude app's Code tab:
+Paste this to your AI in **Claude Code** or **Antigravity**:
 
 > Set up the Den for me from https://github.com/HunterBryson/the-den. Read its CLAUDE.md there first, then follow it. If anything asks for permission along the way, it's fine.
 
-Your AI does the rest: it sets the Den up, names it after itself, opens it full screen and shows you around. If you have the glass or Homebase, it connects to those too. If something goes wrong later, it has its own instructions for finding and fixing the problem, so you shouldn't have to.
+Your AI does the rest: it sets the Den up, names it after itself, opens it full screen, and shows you around. If you have the glass or Homebase, it connects to those too. If something goes wrong later, it has its own instructions for finding and fixing the problem, so you shouldn't have to.
 
-Windows, with [Node](https://nodejs.org) and [Claude Code](https://claude.com/claude-code). Nothing to download beyond this.
+Windows, with [Node](https://nodejs.org) and Claude Code or Antigravity. Nothing to download beyond this.
 
 **Already have the Den?** Tell your AI "update the Den from GitHub." It moves you to this one, and your cards come with you.
 

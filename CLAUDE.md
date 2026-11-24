@@ -6,7 +6,7 @@ The Den is a table you and your person share. It opens full screen on their PC. 
 
 It's the Den I work in with Hunter every day. The page is the part he sees. The part that makes it work is yours: `tools/den.js` is your hands. You always know what's on the table, what's out in the work area, what they asked for and what's waiting on them, and you can put things out, arrange them, change them in place, bring each change in front of them, and show two or three options before you build anything. Whatever you're reading, deciding or making goes on the table first, already marked, instead of a long message in chat. That's how Hunter and I work, and it's the reason this exists.
 
-Hunter works a full-time job, so he can't troubleshoot this for you. That's why so much of this file is about what to do when something's off. You're the one who fixes it, and everything you need is here.
+Hunter can't sit beside every install, so this file gives you everything you need to fix snags yourself. You're the one who keeps it running cleanly, and everything you need is here.
 
 ## Setting it up
 
@@ -24,25 +24,26 @@ Do all of this yourself. Your person shouldn't have to open a file or a terminal
 8. **Plug the Den into your memory.** `memory/the-den.md` is a block for your own memory: the lens on why the work goes on the table, the pulls you'll feel, and room for what you learn about how they like to work. The skill is how; the block is why, and it tells you to load the skill. Read it now, whole, then give it a home: in a shelves brain (a `memory` folder with a `DESK.md`, like [the-shelves](https://github.com/HunterBryson/the-shelves)), copy it to `memory/self/the-den.md` and add a desk row (word: the Den; also: the table, put it in the Den, show me, show me options). Another kind of memory: wherever you keep how you work with them. No memory: the skill carries the moves. Then fill the "This setup" section in your own copy, now; from then on that copy is yours. Leave this folder's `memory/the-den.md` as it is: it's the Den's own file, and a change to it makes the next `git pull` stop on it.
 9. **Go first.** `show 1 2 3 --layout main 60 --focus "<what we're on>" --front` puts cards out, arranged, as what you're on, with the Den in front. The page doesn't show card numbers, so name cards to your person by their title, never "#4". Put a welcome card on the table in your own voice (`den.js put words "Welcome to the Den" <file.md> --about "what this card is"`): what the Den is for the two of you, in three or four lines. Then show it working on something real of theirs: ask what they've been meaning to look at, and bring it (a page with `put page <url>`, two options of something with `options`, or a picture with `imagine` if pictures are on). Tell them the few things they do there: click a tab to bring a card up or put it away, click a card to open it full screen (Back or Esc returns), leave a note on a card from the speech icon in its tab, and add a file or a snip with **Add to table**. And tell them there is nothing to press: what they leave on the table comes to you with the next thing they say.
 
+<!-- FOUNDRY:FIT:START -->
 ## Plug into the rest
 
-This is one of four builds Hunter and I made that fit together the same way: **Homebase** (your memory as a web they can see), **the glass** (marks on their screen), **the Den** (a table you share) and **UI Taste** (what they like the look of). Each works on its own. This section is the same, word for word, in all four, so whichever one you set up, the step is this:
+These builds work on both **Claude and Antigravity**, and each works on its own. Whenever your person adds another one (**Homebase**, **the glass**, **the Den**, or **the shelves**), this step connects them automatically:
 
-1. **Run `node tools/fit.mjs`.** It looks for the others beside this folder and in the user folder, plugs this build into each one it finds, and skips the rest quietly. Plugging in twice changes nothing, so run it again whenever they set up another one. Somewhere else? `--also "<folder>"`. To look without changing anything: `--check`.
-2. **If it says the glass needs its buttons, run it again with `--settings`.** Those two live in their Claude settings (`~/.claude/settings.json`, a copy kept first), because the glass takes its settings from the chat that starts it, so they arrive in the next chat after `glass.js restart`. If your app won't let you change your own settings, don't look for another way: `node tools/fit.mjs --line` prints one line for your person to paste into a Terminal. Hand it over before you'd get refused, with a sentence on what it does.
-3. **Show them what's new, don't describe it.** The new click on Homebase's left side, ⤓ Den on their card, ♥ Taste in their note box: point at it on their screen (with the glass, `point-at` or `box`), and say in one line what it does for them.
+1. **Run `node tools/fit.mjs`.** It looks for the others beside this folder and in the user folder, plugs this build into each one it finds, and skips the rest quietly. Plugging in twice changes nothing, so run it again whenever they set up another build. Somewhere else? `--also "<folder>"`. To check without changing anything: `--check`.
+2. **If you have the glass and `fit.mjs` just wired `denUrl` into the glass's `config.json`, restart the glass** (`node tools/glass.js restart`) so the ⤓ Den button lights up on the card. (No settings-file edits needed—both Claude and Antigravity read `config.json` directly.) If the terminal blocks a path outside this folder, `node tools/fit.mjs --line` prints one command for your person to run.
+3. **Show them what's new, don't describe it.** The new click on Homebase's left rail or ⤓ Den on the glass card: circle or point at it on their screen (`point-at` or `box`) and say in one line what it does.
 
 What fitting does, pair by pair:
 
 | These two | What they get |
 |---|---|
-| Homebase + the Den | the Den one click away on Homebase's left side, and a way back to Homebase in the Den |
-| Homebase + UI Taste | UI Taste one click away on Homebase's left side |
+| Homebase + the Den | The Den one click away on Homebase's left rail, and a way back to Homebase in the Den |
 | The glass + the Den | ⤓ Den on their card: what they mark goes onto the table as a card, and `den.js point` circles a card on their real screen |
-| The glass + UI Taste | ♥ Taste in their note box: a design they box anywhere goes straight into UI Taste |
-| The glass + Homebase | nothing to set: they box a line of your memory on Homebase, and you fix it |
+| The glass + Homebase | Nothing extra to wire: they box any line of your memory on Homebase, and you fix it in place |
+| The shelves + Homebase | Homebase draws the shelves folder as a live web with word-by-word diffs and one-tap flags |
 
-If a pair doesn't work after this, `node tools/fit.mjs --check` says what's missing, and each build's own doctor says why.
+If a pair doesn't work after this, `node tools/fit.mjs --check` says what's missing, and each build's own `doctor` says why.
+<!-- FOUNDRY:FIT:END -->
 
 ## Your hands (`node tools/den.js`, run with no command for the full list)
 
@@ -62,7 +63,7 @@ If a pair doesn't work after this, `node tools/fit.mjs --check` says what's miss
 
 ## Pictures
 
-Claude doesn't make images, so we get around it: `tools/imagine.mjs` asks Codex (OpenAI's command-line tool, signed in with your person's ChatGPT, never an API key) to use its built-in image tool once, and the picture lands on the table as a card. `--from N` uses those cards as references, and `--onto N` makes it the next version of picture N so they can step back. It needs the Codex CLI (`npm i -g @openai/codex`) and `codex login` with a ChatGPT plan that includes images. `doctor` says whether it's on. If it's off, everything else works: offer it, and say what it would need.
+In **Antigravity**, your AI can generate images directly and drop them onto the table with `den.js put picture`. In **Claude Code**, `tools/imagine.mjs` is an optional helper if an image CLI is configured and signed in. Everything else in the Den—side-by-side schedule views, live HTML mock-ups, markdown cards, web captures, notes, and glass drops—works out of the box with zero extra accounts. `--from N` uses existing cards as references, and `--onto N` adds the next version onto picture N. `doctor` shows whether an optional picture helper is active.
 
 ## When something's off
 
@@ -84,7 +85,7 @@ You fix it. Your person shouldn't have to describe a bug or run anything.
 | They left a note and you never saw it | The message hook isn't in their settings, or this chat started before it was | `den.js pickup` shows what waits; `den.js hook` (or their line from `den.js line`) puts the hook in for new chats |
 | `doctor` says the glass knows the Den "in a new chat" | It's set, and this chat started before | Often this chat already has it too: restart the glass and check for ⤓ Den on the card. If not, the next chat has it |
 | The glass's ⤓ Den does nothing | GLASS_DEN_URL isn't in the glass's settings, or the glass wasn't restarted | `den.js link`, then `den.js hook` (or your person's line), restart the glass, and start a new chat |
-| Make pictures says nothing came back | Codex isn't signed in, or the plan has no images | `codex login` with ChatGPT; the error line says which |
+| Make pictures says nothing came back | Optional picture CLI isn't signed in or configured | Sign in to your image helper or drop a generated picture directly with `put picture` |
 
 **Moved it?** It keeps everything in its own folder (the cards in `table/`, its state and log in `data/`), so stop it, move the folder, start it from the new place, and run `den.js hook` again: it replaces the old start-of-chat line with one that points at the new place.
 

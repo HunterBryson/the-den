@@ -52,10 +52,10 @@ const hub = {
 };
 
 const PAGE = path.join(HERE, 'app', 'index.html');
-// Make pictures shows only when Codex is installed and signed in: a Claude user starts with no image making (Forge, Nov 15).
+// Make pictures shows only when an external image CLI is configured and signed in.
 const PICTURES = spawnSync('codex --version', { encoding: 'utf8', shell: true, windowsHide: true }).status === 0 && fs.existsSync(path.join(os.homedir(), '.codex', 'auth.json'));
 // The open page asks this every few seconds and reloads itself when the page's files change or the server restarts,
-// so an AI's change shows up without anyone pressing Ctrl+R (Forge, Nov 15).
+// so an AI's change shows up without anyone pressing Ctrl+R.
 const STARTED = Date.now();
 function pageVersion() { let v = STARTED; try { for (const f of fs.readdirSync(path.join(HERE, 'app'))) v = Math.max(v, fs.statSync(path.join(HERE, 'app', f)).mtimeMs); } catch {} return Math.round(v); }
 const den = denRoutes({ ...cfg, pageFile: PAGE }, hub);
