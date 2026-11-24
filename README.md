@@ -1,31 +1,55 @@
 # The Den
 
-**Start with one real ask. Watch it become something special to you.** A workspace table you and your AI share side by side—for **Claude or Antigravity**—where you both look at the exact same thing.
+**A live workspace table where your AI actually has hands.**
 
-![The Den](docs/den.png)
+Stop squinting at giant chat walls. The Den is a dark, full-screen table you and your AI share side by side—for **Claude or Antigravity**—where your AI lays out real options, resizes and shuffles cards, and edits live right in front of you while you talk.
 
-Whether you start on Day 1 asking *"help me get on top of my schedule"* or you're in Week 2 juggling separate Work and Personal plans, the Den puts real drafts out on the table instead of burying you in chat walls. Your AI builds interactive views, side-by-side options, weekly timelines, web captures, and drops from your screen. Up to four cards sit out side by side, tabs across the top keep what you're on one click away, and every card holds its own notes so you never have to re-explain where you left off.
+![The Den: custom PC build, coastal road trip, and living room options laid out side by side](docs/den.png)
 
-The part that makes it work is the AI's side. Your AI gets its own hands in the Den, so it always knows what's on the table and what you're looking at. It can put things out, change them in place while you watch with glowing live updates, and show two or three options side by side before building the winner.
+**Not a passive pinboard—a live workbench:**
+Most chats bury good ideas 40 messages up. In the Den, **your AI gets real hands on the table.** It always knows what's out in front of you, puts two or three options side by side so you can pick with your eyes instead of explaining in paragraphs, and lights up every line it updates while you watch.
 
-## What you can do
+---
 
-- **Click any card to see it full screen.** Back or Esc brings you back. Nothing closes by accident.
-- **Click a tab across the top** to bring a card out or put it away. Up to four sit out side by side, and you can drag the lines between them.
-- **Leave a note on any card** from the speech icon in its tab, and change it or take it off later. A note doesn't interrupt anything. Your AI gets it with the next thing you say.
-- **Drop or paste anything** onto the page: a file, a picture, a screenshot. It lands on the table.
-- **Pick an option.** When your AI shows you two or three versions of something, each one is its own card, side by side. Tell it which one you like.
-- **With the glass:** box something on a card and your AI knows exactly which card and which words you mean. Or box anything on your screen and drop it in the Den.
+## Start in two minutes — your AI handles everything
 
-## What your AI can do
+You never open a terminal, configure a port, or edit a single file yourself.
 
-- **See the Den the way you see it,** and know what's on the table, what's out in front of you, and what you left for it.
-- **Put things out** for you: pictures, mock-ups of a page before it builds it, words, a web page captured whole so it can read it.
-- **Put two or three options out side by side** before it builds anything, so you pick instead of explaining.
-- **Change a card in place while you watch,** and light up the part it changed. Every change is kept, so either of you can step back.
-- **Keep notes on its own cards,** so the next chat starts already knowing what each one is.
-- **Drop pictures or generate them.** Antigravity generates pictures straight onto cards, and any screenshot or image pastes right onto the table (optional CLI support below).
-- **Tell you when something's your move.** It shows up under Waiting on you.
+- **Already using [The shelves](https://github.com/HunterBryson/the-shelves)?** Just tell your AI: **"Let's try The Den."**
+- **Starting standalone in Claude (Code tab) or Antigravity?** Paste this one sentence and press Enter:
+
+> Set up the Den for me from https://github.com/HunterBryson/the-den. Read its CLAUDE.md there first, then follow it. If anything asks for permission along the way, it's fine.
+
+**That's it.** Your AI clones it, names it after itself, opens it full screen, connects it to Homebase and The Glass if you have them, and puts your first card out on the table. *(Windows, Node 20+, Claude Code or Antigravity.)*
+
+---
+
+## Why it feels completely different from chat
+
+### 1. Your AI has real hands — compare options & edit live
+
+Planning a custom PC build, a road trip, a room setup, or a new app screen? Ask your AI to **put two options side by side.** It builds real interactive cards, arranges them 50/50 on the table, and when you say *"make Option A quieter"* or *"swap the GPU,"* it edits the card in place and lights up the exact line it changed while you watch. Every change keeps history, so either of you can undo in one second.
+
+![Your AI arranging Option A and Option B side by side and highlighting live updates](docs/den-hands.png)
+
+### 2. Snap it straight together with [The glass](https://github.com/HunterBryson/the-glass)
+
+When you have **[The glass](https://github.com/HunterBryson/the-glass)** running, The Den becomes effortless. Draw a box around one stop on a road-trip card or one widget in a layout—your AI knows the exact card and exact words you mean, answers right beside your mark, and updates the card live. You can also box *anything* anywhere on your computer and drop it straight onto the Den table with one click (`⤓ Den`).
+
+![The Den paired with The Glass: boxing Day 2 on a road-trip card and watching your AI rewrite it live](docs/den-glass.png)
+
+### 3. Zero buttons to learn — just look, click, or drop
+
+- **Up to four cards side by side:** Click tabs across the top to bring cards out or tuck them away, and drag the dividers between them. Click any card to view it full screen (`Esc` or Back returns—nothing closes by accident).
+- **Drop notes without interrupting:** Click the speech icon in any tab to leave a quick note on that card. There's no Send button to remember—your AI automatically reads your notes with your next message.
+- **Drop or paste anything:** Drag in a file, paste a screenshot, or tell your AI to capture a whole webpage onto the table so you can both read it together.
+- **Your move at a glance:** When your AI needs a pick from you, that tab lights up with a warm **`• your move`** badge so you always know what's waiting.
+
+---
+
+## Pictures (and Odie on a break)
+
+In **Antigravity**, your AI can generate images directly onto any card. If you use **Claude Code** and want image generation from the CLI too, `tools/imagine.mjs` supports an optional local image CLI—and even without it, everything else in the Den works out of the box with zero extra accounts.
 
 I got really lazy one time and just wanted Odie to make a heckin' picture. So I just told him what I wanted, and this is what came back:
 
@@ -33,9 +57,7 @@ I got really lazy one time and just wanted Odie to make a heckin' picture. So I 
 
 Man, he really does look comfy here. I'm glad hes actually gettin a break for a second. Not too long though, fella.
 
-## Pictures
-
-In **Antigravity**, your AI can generate images directly onto any card. If you use **Claude Code** and want image generation from the CLI too, `tools/imagine.mjs` supports an optional local image CLI—and if you don't set one up, everything else in the Den works out of the box with zero extra accounts.
+---
 
 <!-- FOUNDRY:FIT:START -->
 ## It all fits together
@@ -48,20 +70,18 @@ Each build works on its own on **Claude or Antigravity**, and they all plug into
 - **[The Den](https://github.com/HunterBryson/the-den):** a workspace table you and your AI share side by side—schedule mocks, live previews, and notes before anything is built.
 <!-- FOUNDRY:FIT:END -->
 
-## Set it up
+---
 
-Paste this to your AI in **Claude Code** or **Antigravity**:
+## Make it yours & keep it fresh
 
-> Set up the Den for me from https://github.com/HunterBryson/the-den. Read its CLAUDE.md there first, then follow it. If anything asks for permission along the way, it's fine.
+- **Give your AI its own face:** The red panda in the top-left corner is Odie (my AI). Tell your AI to swap in its own square picture (`app/face.png` and `app/banner.png`) anytime.
+- **Already have an older Den?** Just tell your AI: **"Update the Den from GitHub."** It updates cleanly in place and brings all of your cards along.
+- **Runs 100% locally:** Plain Node on your own machine (`127.0.0.1`), zero external servers, zero paid add-ons.
 
-Your AI does the rest: it sets the Den up, names it after itself, opens it full screen, and shows you around. If you have the glass or Homebase, it connects to those too. If something goes wrong later, it has its own instructions for finding and fixing the problem, so you shouldn't have to.
+---
 
-Windows, with [Node](https://nodejs.org) and Claude Code or Antigravity. Nothing to download beyond this.
+## Something broke, or you have an idea
 
-**Already have the Den?** Tell your AI "update the Den from GitHub." It moves you to this one, and your cards come with you.
+Open an issue and pick a form—your AI can even fill it in for you. Rather email? Write to hello@workbenchagents.com. Every issue and email reaches me, and I answer it myself, usually within a few days. Security problems go privately: see [SECURITY.md](https://github.com/HunterBryson/.github/blob/main/SECURITY.md).
 
-**Something broke, or you have an idea?** Open an issue and pick a form; your AI can fill it in for you. Rather email? Write to hello@workbenchagents.com. Every issue and email reaches me, and I answer it myself, usually within a few days. Security problems go privately: see [SECURITY.md](https://github.com/HunterBryson/.github/blob/main/SECURITY.md).
-
-The picture of Odie at the top is ours. Your AI can swap in its own (`app/banner.png` and `app/face.png`).
-
-Made by me, Hunter Bryson, and Odie. MIT license.
+Made by me, Hunter Bryson, and Odie, for **Claude and Antigravity**. MIT license.
