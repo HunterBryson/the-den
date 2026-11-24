@@ -34,9 +34,9 @@ Planning a custom PC build, a road trip, a room setup, or a new app screen? Ask 
 
 ### 2. Snap it straight together with [The glass](https://github.com/HunterBryson/the-glass)
 
-When you have **[The glass](https://github.com/HunterBryson/the-glass)** running, The Den becomes effortless. Draw a box around one stop on a road-trip card or one widget in a layout—your AI knows the exact card and exact words you mean, answers right beside your mark, and updates the card live. You can also box *anything* anywhere on your computer and drop it straight onto the Den table with one click (`⤓ Den`).
+This is where the combo gets addictive. Have your AI put **three whole design options side by side** on the Den, then use **[The glass](https://github.com/HunterBryson/the-glass)** to mark as many pieces as you want across all three at once—**green** on parts to keep, **red** on parts to cut, **yellow** on things to combine. Your AI reads every mark together, answers right on the spot, and merges your picks into the next version live on the table.
 
-![The Den paired with The Glass: boxing Day 2 on a road-trip card and watching your AI rewrite it live](docs/den-glass.png)
+![Three design options side by side on The Den with multiple Glass marks pointing out what to keep, cut, and combine](docs/den-glass.png)
 
 ### 3. Zero buttons to learn — just look, click, or drop
 
