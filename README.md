@@ -84,4 +84,4 @@ Each build works on its own on **Claude or Antigravity**, and they all plug into
 
 Open an issue and pick a form—your AI can even fill it in for you. Rather email? Write to hello@workbenchagents.com. Every issue and email reaches me, and I answer it myself, usually within a few days. Security problems go privately: see [SECURITY.md](https://github.com/HunterBryson/.github/blob/main/SECURITY.md).
 
-Made by me, Hunter Bryson, and Odie, for **Claude and Antigravity**. MIT license.
+Works with **Claude and Antigravity**. MIT license.
