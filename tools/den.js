@@ -143,10 +143,19 @@ const DEN_PORT = String(new URL(BASE).port || 80), DEN_TAG = `The Den (port ${DE
 const tile = async t => (await run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(here, 'tile.ps1'), ...t, '-Den', DEN_PORT])).o.trim();
 const denWindows = async () => (await tile(['-List'])).split(/\r?\n/).filter(x => x.trimEnd().endsWith(DEN_TAG));
 async function denScreen() { const l = (await denWindows())[0]; const m = l && /^(main|second)\b/.exec(l); return m ? m[1] : null; }
-// Forward and full screen on the screen it's already on. Not open yet: on the screen our chat isn't on.
+async function hasSecondScreen(listLines) {
+  const lines = listLines || (await tile(['-List'])).split(/\r?\n/);
+  return lines.some(x => /^second\b/.test(x));
+}
+// Forward and full screen on the screen it's already on. Not open yet: on the screen our chat isn't on (or main on single-screen PCs).
 async function denFront() {
   let scr = await denScreen();
-  if (!scr) { const chat = (await tile(['-List'])).split(/\r?\n/).find(x => / Claude\s*$/.test(x)); scr = chat && /^second\b/.test(chat) ? 'main' : 'second'; }
+  if (!scr) {
+    const lines = (await tile(['-List'])).split(/\r?\n/);
+    const hasSecond = await hasSecondScreen(lines);
+    const chat = lines.find(x => / Claude\s*$/.test(x));
+    scr = !hasSecond ? 'main' : (chat && /^second\b/.test(chat) ? 'main' : 'second');
+  }
   if (!(await denScreen())) { await (await import('./admin.mjs')).run('open', [], { BASE, here }); await new Promise(z => setTimeout(z, 2500)); }
   const o = await tile(['-Screen', (await denScreen()) || scr, '-Shape', 'full', '-Titles', 'The Den']);
   return o || `the Den is in front, full screen, on their ${scr} screen`;
@@ -346,8 +355,11 @@ async function main() {
     case 'front': console.log(await denFront()); break;
     case 'beside': {
       if (!a[0]) { console.log('usage: den.js beside "<window title>" [the Den\'s share, like 62]'); break; }
-      console.log(await tile(['-Screen', (await denScreen()) || 'second', '-Shape', 'main', '-Split', String(Number(a[1]) || 60), '-Titles', 'The Den,' + a[0]])); break; }
-    case 'alone': console.log(await tile(['-Screen', (await denScreen()) || 'second', '-Shape', 'full', '-Titles', 'The Den'])); break;
+      const targetScr = (await denScreen()) || ((await hasSecondScreen()) ? 'second' : 'main');
+      console.log(await tile(['-Screen', targetScr, '-Shape', 'main', '-Split', String(Number(a[1]) || 60), '-Titles', 'The Den,' + a[0]])); break; }
+    case 'alone': {
+      const targetScr = (await denScreen()) || ((await hasSecondScreen()) ? 'second' : 'main');
+      console.log(await tile(['-Screen', targetScr, '-Shape', 'full', '-Titles', 'The Den'])); break; }
     case 'away': { const ids = a.filter(x => /^\d+$/.test(x)); for (const id of ids) await api(`/cards/${id}`, { method: 'PATCH', body: { state: 'retired', by: 'odie' } }); console.log(ids.length ? `put away: ${ids.map(i => '#' + i).join(' ')}` : 'usage: den.js away N [N...]'); break; }
     case 'now': case 'hold': case 'compare': case 'type': case 'box': case 'circle': case 'underline': case 'answer': case 'done':
       console.log(`"${cmd}" was an older Den's command and the page no longer shows it. Use: show (what's out), mark (my box on their screen, by the glass), say (my line on a card), glass.js answer (under their mark).`); process.exitCode = 1; break;

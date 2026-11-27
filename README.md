@@ -2,7 +2,7 @@
 
 **A live workspace table where your AI actually has hands.**
 
-Stop squinting at giant chat walls. The Den is a dark, full-screen table you and your AI share side by side—for **Claude or Antigravity**—where your AI lays out real options, resizes and shuffles cards, and edits live right in front of you while you talk.
+Stop squinting at giant chat walls. The Den is a dark, full-screen table you and your AI share side by side—for **Claude**—where your AI lays out real options, resizes and shuffles cards, and edits live right in front of you while you talk. *(Antigravity support is being tested next.)*
 
 ![The Den: custom PC build, coastal road trip, and living room options laid out side by side](docs/den.png)
 
@@ -11,16 +11,16 @@ Most chats bury good ideas 40 messages up. In the Den, **your AI gets real hands
 
 ---
 
-## Start in two minutes — your AI handles everything
+## Setting it up — your AI handles everything
 
 You never open a terminal, configure a port, or edit a single file yourself.
 
 - **Already using [The shelves](https://github.com/HunterBryson/the-shelves)?** Just tell your AI: **"Let's try The Den."**
-- **Starting standalone in Claude (Code tab) or Antigravity?** Paste this one sentence and press Enter:
+- **Starting standalone in Claude (Code tab)?** Paste this one sentence and press Enter:
 
 > Set up the Den for me from https://github.com/HunterBryson/the-den. Read its CLAUDE.md there first, then follow it. If anything asks for permission along the way, it's fine.
 
-**That's it.** Your AI clones it, names it after itself, opens it full screen, connects it to Homebase and The Glass if you have them, and puts your first card out on the table. *(Windows, Node 20+, Claude Code or Antigravity.)*
+**That's it.** Your AI clones it, names it after itself, opens it full screen, connects it to Homebase and The Glass if you have them, and puts your first card out on the table. *(Windows, Node 20+, Claude Code.)*
 
 ---
 
@@ -62,7 +62,7 @@ Man, he really does look comfy here. I'm glad hes actually gettin a break for a 
 <!-- FOUNDRY:FIT:START -->
 ## It all fits together
 
-Each build works on its own on **Claude or Antigravity**, and they all plug into each other the same way. Start with whichever one you want. When you set up another, your AI fits them together with `node tools/fit.mjs`, and the new one shows up where you already look.
+Each build works on its own with **Claude**, and they all plug into each other the same way. Start with whichever one you want. When you set up another, your AI fits them together with `node tools/fit.mjs`, and the new one shows up where you already look.
 
 - **[The shelves](https://github.com/HunterBryson/the-shelves):** a starter memory folder for your AI to move into—what Homebase draws, and what the glass opens when you point at a line.
 - **[The glass](https://github.com/HunterBryson/the-glass):** a see-through layer over your screen. Box anything, say what you want, and your AI answers right beside your mark.
@@ -76,7 +76,14 @@ Each build works on its own on **Claude or Antigravity**, and they all plug into
 
 - **Give your AI its own face:** The red panda in the top-left corner is Odie (my AI). Tell your AI to swap in its own square picture (`app/face.png` and `app/banner.png`) anytime.
 - **Already have an older Den?** Just tell your AI: **"Update the Den from GitHub."** It updates cleanly in place and brings all of your cards along.
-- **Runs 100% locally:** Plain Node on your own machine (`127.0.0.1`), zero external servers, zero paid add-ons.
+- **Runs 100% locally:** Plain Node on your own machine (`127.0.0.1`), zero external servers, no extra accounts.
+
+---
+
+## Where this stands, honestly
+
+- **Claude first right now:** Built and lived on in Claude Code, where card-note pickup hooks wire up automatically. Antigravity hook wiring is being tested next.
+- **Windows only for now:** Window tiling and local OCR helpers use Windows PowerShell.
 
 ---
 
@@ -84,4 +91,4 @@ Each build works on its own on **Claude or Antigravity**, and they all plug into
 
 Open an issue and pick a form—your AI can even fill it in for you. Rather email? Write to hello@workbenchagents.com. Every issue and email reaches me, and I answer it myself, usually within a few days. Security problems go privately: see [SECURITY.md](https://github.com/HunterBryson/.github/blob/main/SECURITY.md).
 
-Works with **Claude and Antigravity**. MIT license.
+Works with **Claude** on Windows (Antigravity support in testing). MIT license.

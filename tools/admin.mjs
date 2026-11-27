@@ -336,9 +336,11 @@ async function doctor(BASE, port) {
   else {
     say(fs.existsSync(path.join(g, 'tools', 'glass.js')), `the glass is linked (${g})`, 'that folder moved: node tools/den.js link <where the glass is now>');
     let saved = null; try { saved = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude', 'settings.json'), 'utf8')).env?.GLASS_DEN_URL || null; } catch {}
-    if (process.env.GLASS_DEN_URL) ok.push('✓ the glass knows the Den');
-    else if (saved === `http://127.0.0.1:${port}`) ok.push('· the glass knows the Den from your settings; it takes effect in a new chat, after a glass restart');
-    else say(false, 'the glass knows the Den (GLASS_DEN_URL in your settings)', 'node tools/den.js hook (or hand your person the line from den.js line), then restart the glass');
+    let glassCfgUrl = null; try { glassCfgUrl = JSON.parse(fs.readFileSync(path.join(g, 'config.json'), 'utf8')).denUrl || null; } catch {}
+    const expectedUrl = `http://127.0.0.1:${port}`;
+    if (process.env.GLASS_DEN_URL || glassCfgUrl === expectedUrl) ok.push('✓ the glass knows the Den');
+    else if (saved === expectedUrl) ok.push('· the glass knows the Den from your settings; it takes effect in a new chat, after a glass restart');
+    else say(false, 'the glass knows the Den (denUrl in the glass config.json or GLASS_DEN_URL in settings)', 'node tools/fit.mjs (or node tools/den.js hook), then restart the glass');
   }
   console.log(ok.concat(bad).join('\n'));
   if (bad.length) { console.log(`\nFix the first ✗ first. The end of the Den's log:\n${tail(5)}`); process.exitCode = 1; }
